@@ -1,5 +1,5 @@
 # RlToml: Kaitai Struct definition for RealLive GAN format
-# Copyright (C) 2026 Lucas Velasco
+# Copyright (C) 2026 luvlsco
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

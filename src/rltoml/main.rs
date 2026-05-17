@@ -1,6 +1,6 @@
 /* 
  RlToml: convert RealLive auxiliary file formats <> TOML
- Copyright (C) 2026 Lucas Velasco
+ Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
   Copyright (C) 2006 Haeleth
@@ -22,6 +22,7 @@
 
 mod app;
 mod gan;
+mod toml_formatter;
 
 use clap::CommandFactory;
 use std::fs;
@@ -49,7 +50,7 @@ fn main() {
 
 	let file = &args.files[0];
 
-	let toml = gan::gan_convert::gan_to_toml(file).unwrap_or_else(|err| {
+	let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
 		eprintln!("error converting {} to TOML: {:?}", file, err);
 		std::process::exit(1);
 	});

@@ -1,10 +1,9 @@
 /* 
  RlToml: GAN format handling
- Copyright (C) 2026 Lucas Velasco
+ Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
   Copyright (C) 2006 Haeleth
-  Revised 2009-2011 by Richard 23
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -29,7 +28,7 @@ use super::gan_parser::GanParser as GP;
 use super::gan_parser::GanParser_DataSection_AnimationFrame as GPAnimFrame;
 use super::gan_parser::GanParser_DataSection_AnimationSet as GPAnimSet;
 
-use itertools::Itertools;
+use crate::toml_formatter::{self, TomlFrameAttrs};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct FrameAttrs {
@@ -65,19 +64,9 @@ impl FrameAttrs {
 		})
 	}
 
-	fn diff_from(&self, defaults: &FrameAttrs) -> FrameAttrs {
-		FrameAttrs {
-			pattern: (self.pattern != defaults.pattern).then_some(self.pattern).flatten(),
-			x: (self.x != defaults.x).then_some(self.x).flatten(),
-			y: (self.y != defaults.y).then_some(self.y).flatten(),
-			time: (self.time != defaults.time).then_some(self.time).flatten(),
-			alpha: (self.alpha != defaults.alpha).then_some(self.alpha).flatten(),
-			other: (self.other != defaults.other).then_some(self.other).flatten(),
-		}
-	}
 }
 
-fn common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
+fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
 	frames.iter().skip(1).fold(frames.first().cloned().unwrap_or_default(),
 		|mut acc, frame| {
 			if acc.pattern != frame.pattern { acc.pattern = None; }
@@ -91,23 +80,48 @@ fn common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
 	)
 }
 
-fn format_inline_table(attrs: &FrameAttrs) -> String {
-	let fields = [
-		attrs.pattern.map(|p| format!("pattern = \"{}\"", p)),
-		attrs.x.map(|v| format!("x = {}", v)),
-		attrs.y.map(|v| format!("y = {}", v)),
-		attrs.time.map(|v| format!("time = {}", v)),
-		attrs.alpha.map(|v| format!("alpha = {}", v)),
-		attrs.other.map(|v| format!("other = {}", v)),
-	].into_iter().flatten().join(", ");
-	format!("{{ {} }}", fields)
+impl TomlFrameAttrs for FrameAttrs {
+	fn to_inline_table_fields(&self) -> Vec<(String, String)> {
+		let mut fields = Vec::new();
+		if let Some(p) = self.pattern {
+			fields.push(("pattern".to_string(), format!("\"{}\"", p)));
+		}
+		if let Some(v) = self.x {
+			fields.push(("x".to_string(), v.to_string()));
+		}
+		if let Some(v) = self.y {
+			fields.push(("y".to_string(), v.to_string()));
+		}
+		if let Some(v) = self.time {
+			fields.push(("time".to_string(), v.to_string()));
+		}
+		if let Some(v) = self.alpha {
+			fields.push(("alpha".to_string(), v.to_string()));
+		}
+		if let Some(v) = self.other {
+			fields.push(("other".to_string(), v.to_string()));
+		}
+		fields
+	}
+
+	fn diff_from(&self, defaults: &FrameAttrs) -> FrameAttrs {
+		FrameAttrs {
+			pattern: (self.pattern != defaults.pattern).then_some(self.pattern).flatten(),
+			x: (self.x != defaults.x).then_some(self.x).flatten(),
+			y: (self.y != defaults.y).then_some(self.y).flatten(),
+			time: (self.time != defaults.time).then_some(self.time).flatten(),
+			alpha: (self.alpha != defaults.alpha).then_some(self.alpha).flatten(),
+			other: (self.other != defaults.other).then_some(self.other).flatten(),
+		}
+	}
 }
+
 
 fn format_set(set: &GPAnimSet) -> String {
 	let frames: Vec<FrameAttrs> = set.frames().iter()
 		.map(|rc| FrameAttrs::from_frame(&rc.get()))
 		.collect();
-	let defaults = common_attrs(&frames);
+	let defaults = detect_common_attrs(&frames);
 
 	let mut lines = Vec::new();
 	lines.push("[[gan.set]]".to_string());
@@ -119,7 +133,11 @@ fn format_set(set: &GPAnimSet) -> String {
 	lines.push("frames = [".to_string());
 
 	lines.extend(frames.iter()
-		.map(|frame| format!("  {},", format_inline_table(&frame.diff_from(&defaults))))
+		.map(|frame| {
+			let diff = frame.diff_from(&defaults);
+			let fields = diff.to_inline_table_fields();
+			format!("  {},", toml_formatter::format_inline_table(&fields))
+		})
 	);
 
 	lines.push("]".to_string());

@@ -1,6 +1,6 @@
 /* 
  RlToml: convert RealLive auxiliary file formats <> TOML
- Copyright (C) 2026 Lucas Velasco
+ Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
   Copyright (C) 2006 Haeleth
