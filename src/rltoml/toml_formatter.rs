@@ -16,23 +16,24 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#![allow(unused)]
-
-use itertools::Itertools;
+use toml_edit::{InlineTable, Value};
 
 pub trait TomlFrameAttrs: Clone + Default {
 	fn to_inline_table_fields(&self) -> Vec<(String, String)>;
 	fn diff_from(&self, defaults: &Self) -> Self;
 }
 
-pub fn format_inline_table(fields: &[(String, String)]) -> String {
-	let formatted = fields
-		.iter()
-		.map(|(key, value)| format!("{} = {}", key, value))
-		.join(", ");
-	format!("{{ {} }}", formatted)
-}
-
-pub fn write_section_header(section_name: &str) -> String {
-	format!("[[{}]]", section_name)
+pub fn build_inline_table(fields: &[(String, String)]) -> InlineTable {
+	let mut table = InlineTable::new();
+	for (key, value) in fields {
+		let parsed_value: Value = value.parse().unwrap_or_else(|_| {
+			let toml_str = format!("x = \"{}\"", value.replace('"', "\\\""));
+			toml_str.parse::<toml_edit::Item>()
+				.ok()
+				.and_then(|item| item.as_value().cloned())
+				.unwrap_or_else(|| "\"\"".parse().unwrap())
+		});
+		table.insert(key, parsed_value);
+	}
+	table
 }

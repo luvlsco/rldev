@@ -26,7 +26,6 @@ use kaitai::OptRc;
 
 use super::gan_parser::GanParser as GP;
 use super::gan_parser::GanParser_DataSection_AnimationFrame as GPAnimFrame;
-use super::gan_parser::GanParser_DataSection_AnimationSet as GPAnimSet;
 
 use crate::toml_formatter::{self, TomlFrameAttrs};
 
@@ -63,7 +62,6 @@ impl FrameAttrs {
 			attrs
 		})
 	}
-
 }
 
 fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
@@ -117,33 +115,6 @@ impl TomlFrameAttrs for FrameAttrs {
 }
 
 
-fn format_set(set: &GPAnimSet) -> String {
-	let frames: Vec<FrameAttrs> = set.frames().iter()
-		.map(|rc| FrameAttrs::from_frame(&rc.get()))
-		.collect();
-	let defaults = detect_common_attrs(&frames);
-
-	let mut lines = Vec::new();
-	lines.push("[[gan.set]]".to_string());
-	if let Some(p) = defaults.pattern { lines.push(format!("pattern = \"{}\"", p)); }
-	if let Some(v) = defaults.x { lines.push(format!("x = {}", v)); }
-	if let Some(v) = defaults.y { lines.push(format!("y = {}", v)); }
-	if let Some(v) = defaults.time { lines.push(format!("time = {}", v)); }
-	if let Some(v) = defaults.other { lines.push(format!("other = {}", v)); }
-	lines.push("frames = [".to_string());
-
-	lines.extend(frames.iter()
-		.map(|frame| {
-			let diff = frame.diff_from(&defaults);
-			let fields = diff.to_inline_table_fields();
-			format!("  {},", toml_formatter::format_inline_table(&fields))
-		})
-	);
-
-	lines.push("]".to_string());
-	lines.join("\n")
-}
-
 pub fn parse_gan(path: &str) -> KResult<OptRc<GP>> {
 	let reader = BytesReader::open(path)?;
 	let gan = GP::read_into::<_, GP>(&reader, None, None)?;
@@ -161,7 +132,38 @@ pub fn gan_to_toml(path: &str) -> KResult<String> {
 	lines.push(String::new());
 
 	for set_rc in data_section.sets().iter() {
-		lines.push(format_set(&set_rc.get()));
+		let set = &set_rc.get();
+		let frames: Vec<FrameAttrs> = set.frames().iter()
+			.map(|rc| FrameAttrs::from_frame(&rc.get()))
+			.collect();
+		let defaults = detect_common_attrs(&frames);
+
+		lines.push("[[gan.set]]".to_string());
+		if let Some(p) = defaults.pattern {
+			lines.push(format!("pattern = \"{}\"", p));
+		}
+		if let Some(v) = defaults.x {
+			lines.push(format!("x = {}", v));
+		}
+		if let Some(v) = defaults.y {
+			lines.push(format!("y = {}", v));
+		}
+		if let Some(v) = defaults.time {
+			lines.push(format!("time = {}", v));
+		}
+		if let Some(v) = defaults.other {
+			lines.push(format!("other = {}", v));
+		}
+		lines.push("frames = [".to_string());
+
+		for frame in frames {
+			let diff = frame.diff_from(&defaults);
+			let fields = diff.to_inline_table_fields();
+			let inline_table = toml_formatter::build_inline_table(&fields);
+			lines.push(format!("  {},", inline_table));
+		}
+
+		lines.push("]".to_string());
 		lines.push(String::new());
 	}
 
