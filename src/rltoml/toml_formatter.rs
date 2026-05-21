@@ -21,6 +21,16 @@ use toml_edit::{InlineTable, Value};
 pub trait TomlFrameAttrs: Clone + Default {
 	fn to_inline_table_fields(&self) -> Vec<(String, String)>;
 	fn diff_from(&self, defaults: &Self) -> Self;
+	fn to_block_fields(&self) -> Vec<(String, String)> {
+		self.to_inline_table_fields()
+	}
+}
+
+pub fn write_block_fields(attrs: &impl TomlFrameAttrs) -> Vec<String> {
+	attrs.to_block_fields()
+		.into_iter()
+		.map(|(name, val)| format!("{} = {}", name, val))
+		.collect()
 }
 
 pub fn build_inline_table(fields: &[(String, String)]) -> InlineTable {

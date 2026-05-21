@@ -1,5 +1,5 @@
-/* 
- RlToml: GAN format handling
+/*
+ RlToml: GAN to TOML format handling
  Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
@@ -19,15 +19,40 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use kaitai::BytesReader;
-use kaitai::KStruct;
-use kaitai::KResult;
-use kaitai::OptRc;
+use kaitai::{BytesReader, KStruct, KResult, OptRc};
 
 use super::gan_parser::GanParser as GP;
 use super::gan_parser::GanParser_DataSection_AnimationFrame as GPAnimFrame;
 
 use crate::toml_formatter::{self, TomlFrameAttrs};
+
+#[repr(u32)]
+enum Frame {
+	Pattern = 30100,
+	X = 30101,
+	Y = 30102,
+	Time = 30103,
+	Alpha = 30104,
+	Other = 30105,
+	FrameEnd = 999999,
+}
+
+impl TryFrom<u32> for Frame {
+	type Error = ();
+
+	fn try_from(v: u32) -> Result<Self, ()> {
+		match v {
+			30100 => Ok(Frame::Pattern),
+			30101 => Ok(Frame::X),
+			30102 => Ok(Frame::Y),
+			30103 => Ok(Frame::Time),
+			30104 => Ok(Frame::Alpha),
+			30105 => Ok(Frame::Other),
+			999999 => Ok(Frame::FrameEnd),
+			_ => Err(()),
+		}
+	}
+}
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct FrameAttrs {
@@ -40,87 +65,82 @@ struct FrameAttrs {
 }
 
 impl FrameAttrs {
-	fn set_attr(&mut self, tag: u32, value: i32) {
-		match tag {
-			30_100 => self.pattern = Some(value),
-			30_101 => self.x = Some(value),
-			30_102 => self.y = Some(value),
-			30_103 => self.time = Some(value),
-			30_104 => self.alpha = Some(value),
-			30_105 => self.other = Some(value),
-			_ => (),
-		}
+	/// Returns an iterator over all (field name, value) pairs in insertion order.
+	fn iter_fields(&self) -> impl Iterator<Item = (&'static str, Option<i32>)> {
+		[
+			("pattern", self.pattern),
+			("x", self.x),
+			("y", self.y),
+			("time", self.time),
+			("alpha", self.alpha),
+			("other", self.other),
+		]
+		.into_iter()
 	}
 
+	/// Constructs frame attributes from a Kaitai-parsed animation frame.
 	fn from_frame(frame: &GPAnimFrame) -> Self {
 		frame.entries().iter().fold(FrameAttrs::default(), |mut attrs, entry_rc| {
 			let entry = entry_rc.get();
 			let tag = *entry.tag();
-			if tag != 999_999 {
-				attrs.set_attr(tag, *entry.value());
+			if let Ok(t) = Frame::try_from(tag) {
+				attrs.set_attr(t, *entry.value());
 			}
 			attrs
 		})
 	}
-}
 
-fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
-	frames.iter().skip(1).fold(frames.first().cloned().unwrap_or_default(),
-		|mut acc, frame| {
-			if acc.pattern != frame.pattern { acc.pattern = None; }
-			if acc.x != frame.x { acc.x = None; }
-			if acc.y != frame.y { acc.y = None; }
-			if acc.time != frame.time { acc.time = None; }
-			if acc.alpha != frame.alpha { acc.alpha = None; }
-			if acc.other != frame.other { acc.other = None; }
-			acc
-		},
-	)
+	/// Sets an attribute value based on its tag.
+	fn set_attr(&mut self, tag: Frame, value: i32) {
+		match tag {
+			Frame::Pattern => self.pattern = Some(value),
+			Frame::X => self.x = Some(value),
+			Frame::Y => self.y = Some(value),
+			Frame::Time => self.time = Some(value),
+			Frame::Alpha => self.alpha = Some(value),
+			Frame::Other => self.other = Some(value),
+			Frame::FrameEnd => (),
+		}
+	}
 }
 
 impl TomlFrameAttrs for FrameAttrs {
+	/// Converts frame attributes to inline TOML table fields.
 	fn to_inline_table_fields(&self) -> Vec<(String, String)> {
-		let mut fields = Vec::new();
-		if let Some(p) = self.pattern {
-			fields.push(("pattern".to_string(), format!("\"{}\"", p)));
-		}
-		if let Some(v) = self.x {
-			fields.push(("x".to_string(), v.to_string()));
-		}
-		if let Some(v) = self.y {
-			fields.push(("y".to_string(), v.to_string()));
-		}
-		if let Some(v) = self.time {
-			fields.push(("time".to_string(), v.to_string()));
-		}
-		if let Some(v) = self.alpha {
-			fields.push(("alpha".to_string(), v.to_string()));
-		}
-		if let Some(v) = self.other {
-			fields.push(("other".to_string(), v.to_string()));
-		}
-		fields
+		self.iter_fields()
+			.filter_map(|(name, value)| {
+				value.map(|v| {
+					let formatted = match name {
+						"pattern" => format!("\"{}\"", v),
+						_ => v.to_string(),
+					};
+					(name.to_string(), formatted)
+				})
+			})
+			.collect()
 	}
 
+	/// Computes the difference from a default set of attributes.
 	fn diff_from(&self, defaults: &FrameAttrs) -> FrameAttrs {
 		FrameAttrs {
-			pattern: (self.pattern != defaults.pattern).then_some(self.pattern).flatten(),
-			x: (self.x != defaults.x).then_some(self.x).flatten(),
-			y: (self.y != defaults.y).then_some(self.y).flatten(),
-			time: (self.time != defaults.time).then_some(self.time).flatten(),
-			alpha: (self.alpha != defaults.alpha).then_some(self.alpha).flatten(),
-			other: (self.other != defaults.other).then_some(self.other).flatten(),
+			pattern: diff_opt(self.pattern, defaults.pattern),
+			x: diff_opt(self.x, defaults.x),
+			y: diff_opt(self.y, defaults.y),
+			time: diff_opt(self.time, defaults.time),
+			alpha: diff_opt(self.alpha, defaults.alpha),
+			other: diff_opt(self.other, defaults.other),
 		}
 	}
 }
 
-
+/// Parses a GAN file from disk using Kaitai Struct binary parser.
 pub fn parse_gan(path: &str) -> KResult<OptRc<GP>> {
 	let reader = BytesReader::open(path)?;
 	let gan = GP::read_into::<_, GP>(&reader, None, None)?;
 	Ok(gan)
 }
 
+/// Converts a GAN animation file to TOML format.
 pub fn gan_to_toml(path: &str) -> KResult<String> {
 	let gan = parse_gan(path)?;
 	let header = gan.header().get();
@@ -139,21 +159,7 @@ pub fn gan_to_toml(path: &str) -> KResult<String> {
 		let defaults = detect_common_attrs(&frames);
 
 		lines.push("[[gan.set]]".to_string());
-		if let Some(p) = defaults.pattern {
-			lines.push(format!("pattern = \"{}\"", p));
-		}
-		if let Some(v) = defaults.x {
-			lines.push(format!("x = {}", v));
-		}
-		if let Some(v) = defaults.y {
-			lines.push(format!("y = {}", v));
-		}
-		if let Some(v) = defaults.time {
-			lines.push(format!("time = {}", v));
-		}
-		if let Some(v) = defaults.other {
-			lines.push(format!("other = {}", v));
-		}
+		lines.extend(toml_formatter::write_block_fields(&defaults));
 		lines.push("frames = [".to_string());
 
 		for frame in frames {
@@ -168,4 +174,29 @@ pub fn gan_to_toml(path: &str) -> KResult<String> {
 	}
 
 	Ok(lines.join("\n"))
+}
+
+/// Returns `a` if it differs from `b`, otherwise `None`.
+fn diff_opt(a: Option<i32>, b: Option<i32>) -> Option<i32> {
+	a.filter(|v| Some(*v) != b)
+}
+
+/// Returns `a` if it equals `b`, otherwise `None`.
+fn keep_if_eq(a: Option<i32>, b: Option<i32>) -> Option<i32> {
+	a.filter(|v| Some(*v) == b)
+}
+
+/// Detects attributes that are common (identical) across all frames in a set.
+fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
+	frames.iter().skip(1).fold(
+		frames.first().cloned().unwrap_or_default(),
+		|common, frame| FrameAttrs {
+			pattern: keep_if_eq(common.pattern, frame.pattern),
+			x: keep_if_eq(common.x, frame.x),
+			y: keep_if_eq(common.y, frame.y),
+			time: keep_if_eq(common.time, frame.time),
+			alpha: keep_if_eq(common.alpha, frame.alpha),
+			other: keep_if_eq(common.other, frame.other),
+		},
+	)
 }
