@@ -28,6 +28,8 @@ use clap::CommandFactory;
 use std::fs;
 use std::path::Path;
 
+use rldev::common::cli::get_file_name;
+
 fn main() {
 	let raw_args: Vec<_> = std::env::args_os().collect();
 	let args = app::parse_args();
@@ -51,7 +53,7 @@ fn main() {
 	let file = &args.files[0];
 
 	let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
-		eprintln!("error converting {} to TOML: {:?}", file, err);
+		eprintln!("Failed to convert {} to TOML: {}", get_file_name(file), gan::format_gan_error(&err));
 		std::process::exit(1);
 	});
 

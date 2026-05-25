@@ -21,38 +21,11 @@
 
 use kaitai::{BytesReader, KStruct, KResult, OptRc};
 
-use super::gan_parser::GanParser as GP;
-use super::gan_parser::GanParser_DataSection_AnimationFrame as GPAnimFrame;
+use super::gan_parser::GanParser;
+use super::gan_parser::GanParser_Frame as GanFrame;
+use super::gan_parser::GanParser_GanDataSection_AnimationFrame as GanAnimFrame;
 
 use crate::toml_formatter::{self, TomlFrameAttrs};
-
-#[repr(u32)]
-enum Frame {
-	Pattern = 30100,
-	X = 30101,
-	Y = 30102,
-	Time = 30103,
-	Alpha = 30104,
-	Other = 30105,
-	FrameEnd = 999999,
-}
-
-impl TryFrom<u32> for Frame {
-	type Error = ();
-
-	fn try_from(v: u32) -> Result<Self, ()> {
-		match v {
-			30100 => Ok(Frame::Pattern),
-			30101 => Ok(Frame::X),
-			30102 => Ok(Frame::Y),
-			30103 => Ok(Frame::Time),
-			30104 => Ok(Frame::Alpha),
-			30105 => Ok(Frame::Other),
-			999999 => Ok(Frame::FrameEnd),
-			_ => Err(()),
-		}
-	}
-}
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct FrameAttrs {
@@ -79,27 +52,27 @@ impl FrameAttrs {
 	}
 
 	/// Constructs frame attributes from a Kaitai-parsed animation frame.
-	fn from_frame(frame: &GPAnimFrame) -> Self {
+	fn from_frame(frame: &GanAnimFrame) -> Self {
 		frame.entries().iter().fold(FrameAttrs::default(), |mut attrs, entry_rc| {
 			let entry = entry_rc.get();
-			let tag = *entry.tag();
-			if let Ok(t) = Frame::try_from(tag) {
-				attrs.set_attr(t, *entry.value());
-			}
+			let tag = entry.tag().clone();
+			let value = *entry.value();
+			attrs.set_attr(tag, value);
 			attrs
 		})
 	}
 
 	/// Sets an attribute value based on its tag.
-	fn set_attr(&mut self, tag: Frame, value: i32) {
+	fn set_attr(&mut self, tag: GanFrame, value: i32) {
 		match tag {
-			Frame::Pattern => self.pattern = Some(value),
-			Frame::X => self.x = Some(value),
-			Frame::Y => self.y = Some(value),
-			Frame::Time => self.time = Some(value),
-			Frame::Alpha => self.alpha = Some(value),
-			Frame::Other => self.other = Some(value),
-			Frame::FrameEnd => (),
+			GanFrame::Pattern => self.pattern = Some(value),
+			GanFrame::X => self.x = Some(value),
+			GanFrame::Y => self.y = Some(value),
+			GanFrame::Time => self.time = Some(value),
+			GanFrame::Alpha => self.alpha = Some(value),
+			GanFrame::Other => self.other = Some(value),
+			GanFrame::FrameEnd => (),
+			GanFrame::Unknown(_) => (),
 		}
 	}
 }
@@ -134,17 +107,17 @@ impl TomlFrameAttrs for FrameAttrs {
 }
 
 /// Parses a GAN file from disk using Kaitai Struct binary parser.
-pub fn parse_gan(path: &str) -> KResult<OptRc<GP>> {
+pub fn parse_gan(path: &str) -> KResult<OptRc<GanParser>> {
 	let reader = BytesReader::open(path)?;
-	let gan = GP::read_into::<_, GP>(&reader, None, None)?;
+	let gan = GanParser::read_into::<_, GanParser>(&reader, None, None)?;
 	Ok(gan)
 }
 
 /// Converts a GAN animation file to TOML format.
 pub fn gan_to_toml(path: &str) -> KResult<String> {
 	let gan = parse_gan(path)?;
-	let header = gan.header().get();
-	let data_section = gan.data_section().get();
+	let header = gan.gan_header().get();
+	let data_section = gan.gan_data_section().get();
 
 	let mut lines = Vec::new();
 	lines.push("[gan]".to_string());
@@ -199,4 +172,40 @@ fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
 			other: keep_if_eq(common.other, frame.other),
 		},
 	)
+}
+
+pub fn format_gan_error(err: &kaitai::KError, verbose: bool) -> String {
+    use kaitai::KError;
+
+    match err {
+        KError::ValidationFailed(e) => {
+            let hint = match e.src_path.as_str() {
+                "/types/gan_header/seq/0" =>
+				"invalid value at first GAN header, maybe it's not a GAN file? (expected \"10000\" got {value})",
+                
+				"/types/gan_header/seq/1" =>
+				"invalid value at second GAN header, maybe it's not a GAN file?",
+                
+				"/types/gan_header/seq/2" =>
+				"invalid value at third GAN header, maybe it's not a GAN file?",
+                
+				"/types/gan_data_section/seq/0" =>
+				"invalid data section - file may be truncated or corrupt",
+                
+				"/types/gan_data_section/types/animation_set/seq/0" =>
+				"invalid animation set - set count in header may not match actual data",
+                
+				"/types/gan_data_section/types/frame_entry/seq/0" =>
+				"invalid frame entry - expected a frame attribute or end marker.",
+                
+				_ => "validation failed at an unexpected location",
+            };
+            if verbose {
+                format!("{} [{:?} @ {}]", hint, e.kind, e.src_path)
+            } else {
+                hint.to_string()
+            }
+        }
+        _ => format!("{:?}", err),
+    }
 }

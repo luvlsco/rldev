@@ -23,15 +23,25 @@ meta:
   ks-version: 0.11
   encoding: UTF-8
   endian: le
+  
+enums:
+  frame:
+    30100: pattern
+    30101: x
+    30102: y
+    30103: time
+    30104: alpha
+    30105: other
+    999999: frame_end
 
 seq:
-  - id: header
-    type: header
-  - id: data_section
-    type: data_section
+  - id: gan_header
+    type: gan_header
+  - id: gan_data_section
+    type: gan_data_section
 
 types:
-  header:
+  gan_header:
     seq:
       - id: magic_1
         type: u4
@@ -51,7 +61,7 @@ types:
       - id: bitmap_name
         type: strz
 
-  data_section:
+  gan_data_section:
     seq:
       - id: data_section_marker
         type: u4
@@ -85,13 +95,23 @@ types:
           - id: entries
             type: frame_entry
             repeat: until
-            repeat-until: _.tag == 999999
+            repeat-until: _.tag == frame::frame_end
 
       frame_entry:
         seq:
           - id: tag
             type: u4
+            enum: frame
+            valid:
+              any-of:
+                - frame::pattern
+                - frame::x
+                - frame::y
+                - frame::time
+                - frame::alpha
+                - frame::other
+                - frame::frame_end
 
           - id: value
             type: s4
-            if: tag != 999999
+            if: tag != frame::frame_end
