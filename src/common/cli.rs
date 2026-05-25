@@ -1,6 +1,18 @@
 use clap::Command;
 use std::path::Path;
 
+/// Prints a message followed by an empty line.
+pub fn print_line(msg: impl std::fmt::Display) {
+	println!("{msg}");
+	println!();
+}
+
+/// Prints an error message to stderr followed by an empty line.
+pub fn eprint_line(msg: impl std::fmt::Display) {
+	eprintln!("{msg}");
+	println!();
+}
+
 /// Returns the file name (without path) of the given path, or the path itself if it has no file name.
 pub fn get_file_name(path: impl AsRef<Path>) -> String {
 	path.as_ref()
@@ -9,7 +21,7 @@ pub fn get_file_name(path: impl AsRef<Path>) -> String {
 		.unwrap_or_else(|| path.as_ref().display().to_string())
 }
 
-/// Returns the binary name to be used in help/version output, based on the first command-line argument (the program path).
+/// Returns the binary name to be used in help/version output, based on the first command-line argument.
 pub fn get_bin_name(cmd: &Command) -> String {
 	std::env::args_os()
 		.next()

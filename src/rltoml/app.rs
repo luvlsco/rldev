@@ -1,4 +1,4 @@
-/* 
+/*
  RlToml: convert RealLive auxiliary file formats <> TOML
  Copyright (C) 2026 luvlsco
 
@@ -29,22 +29,26 @@ use clap::Parser;
 	about = concat!(
 		"convertor between RealLive auxiliary data formats and TOML\n",
 		"Use --info to show more information about this program"),
-	help_template = "{name} {version}: {about}\n\n{usage-heading} {usage}\n\n{all-args}\n",
+	help_template = concat!(
+		"{name} {version}: {about}\n\n",
+		"\x1b[1;4mUsage:\x1b[0m {usage}\n\n",
+		"\x1b[1;4mOptions:\x1b[0m\n",
+		"{options}\n"),
 	disable_help_flag = true,
 	disable_version_flag = true,
 )]
 pub struct Args {
-    #[arg(
-        long = "help",
-        help = "display this usage information"
-    )]
-    pub help: bool,
+	#[arg(
+		long = "help",
+		help = "display this usage information"
+	)]
+	pub help: bool,
 
-    #[arg(
-        long = "version",
-        help = "display RlToml version information"
-    )]
-    pub version: bool,
+	#[arg(
+		long = "version",
+		help = "display RlToml version information"
+	)]
+	pub version: bool,
 
 	#[arg(
 		long = "info",
@@ -52,13 +56,15 @@ pub struct Args {
 	)]
 	pub info: bool,
 
-    #[arg(short, long)]
-    pub verbose: bool,
-    
-	#[arg(value_name = "FILES")]
-    pub files: Vec<String>,
+	#[arg(
+		short = 'v',
+		long = "verbose",
+		help = "show detailed information about what RlToml is doing")]
+	pub verbose: bool,
+	
+	pub files: Vec<String>,
 }
 
 pub fn parse_args() -> Args {
-    Args::parse()
+	Args::parse()
 }

@@ -1,4 +1,4 @@
-/* 
+/*
  RlToml: convert RealLive auxiliary file formats <> TOML
  Copyright (C) 2026 luvlsco
 
@@ -28,7 +28,7 @@ use clap::CommandFactory;
 use std::fs;
 use std::path::Path;
 
-use rldev::common::cli::get_file_name;
+use rldev::common::cli::{get_file_name, print_line, eprint_line};
 
 fn main() {
 	let raw_args: Vec<_> = std::env::args_os().collect();
@@ -41,27 +41,33 @@ fn main() {
 	}
 	
 	if args.version {
-		println!("RlToml {} - convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION"));
+		print_line(format!("RlToml {} - convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
 		std::process::exit(0);
 	}
 
 	if args.info {
-        println!("RlToml {}: convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION"));
+        print_line(format!("RlToml {}: convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
         std::process::exit(0);
+	}
+
+	if args.files.is_empty() {
+		let cmd = app::Args::command();
+		rldev::common::cli::print_help(cmd);
+		std::process::exit(0);
 	}
 
 	let file = &args.files[0];
 
 	let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
-		eprintln!("Failed to convert {} to TOML: {}", get_file_name(file), gan::format_gan_error(&err));
+		eprint_line(format!("Failed to convert \"{}\" to TOML: {}", get_file_name(file), gan::format_gan_error(&err, args.verbose)));
 		std::process::exit(1);
 	});
 
 	let out_path = Path::new(file).with_extension("gan.toml");
 	if let Err(err) = fs::write(&out_path, toml) {
-		eprintln!("error writing {}: {}", out_path.display(), err);
+		eprint_line(format!("error writing {}: {}", out_path.display(), err));
 		std::process::exit(1);
 	}
 
-	println!("sucess: {}", out_path.display());
+	print_line(format!("sucess: {}", out_path.display()));
 }

@@ -19,7 +19,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use kaitai::{BytesReader, KStruct, KResult, OptRc};
+use kaitai::{BytesReader, KStruct, KResult, KError, OptRc};
 
 use super::gan_parser::GanParser;
 use super::gan_parser::GanParser_Frame as GanFrame;
@@ -175,37 +175,38 @@ fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
 }
 
 pub fn format_gan_error(err: &kaitai::KError, verbose: bool) -> String {
-    use kaitai::KError;
+	match err {
+		KError::ValidationFailed(e) => {
+			let error_message = match e.src_path.as_str() {
+				"/types/gan_header/seq/0" =>
+				"invalid value at first GAN header (expected 10000) - maybe it's not a GAN file?",
 
-    match err {
-        KError::ValidationFailed(e) => {
-            let hint = match e.src_path.as_str() {
-                "/types/gan_header/seq/0" =>
-				"invalid value at first GAN header, maybe it's not a GAN file? (expected \"10000\" got {value})",
-                
 				"/types/gan_header/seq/1" =>
-				"invalid value at second GAN header, maybe it's not a GAN file?",
-                
+				"invalid value at second GAN header (expected 10000) - maybe it's not a GAN file?",
+				
 				"/types/gan_header/seq/2" =>
-				"invalid value at third GAN header, maybe it's not a GAN file?",
-                
+				"invalid value at third GAN header (expected 10100) - maybe it's not a GAN file?",
+				
 				"/types/gan_data_section/seq/0" =>
-				"invalid data section - file may be truncated or corrupt",
-                
+				"invalid data section start marker (expected 20000)",
+
 				"/types/gan_data_section/types/animation_set/seq/0" =>
-				"invalid animation set - set count in header may not match actual data",
-                
+				"invalid animation set start marker (expected 30000)",
+
 				"/types/gan_data_section/types/frame_entry/seq/0" =>
-				"invalid frame entry - expected a frame attribute or end marker.",
-                
-				_ => "validation failed at an unexpected location",
-            };
-            if verbose {
-                format!("{} [{:?} @ {}]", hint, e.kind, e.src_path)
-            } else {
-                hint.to_string()
-            }
-        }
-        _ => format!("{:?}", err),
-    }
+				"unknown GAN frame entry tag (expected 30100, 30101, 30102, 30103, 30104, 30105, or 999999)",
+
+				_ => "parse failed at an unexpected location, enable verbose mode for details",
+			};
+
+			let error_details = format!("KError::ValidationFailed: [{:?} @ {}]", e.kind, e.src_path);
+
+			if verbose {
+				format!("{}\n{}", error_message, error_details)
+			} else {
+				error_message.to_string()
+			}
+		}
+		_ => format!("{:?}", err),
+	}
 }
