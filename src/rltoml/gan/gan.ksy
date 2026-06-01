@@ -21,7 +21,7 @@ meta:
   file-extension: gan
   license: "GPL-3.0-or-later"
   ks-version: 0.11
-  encoding: UTF-8
+  encoding: Shift_JIS
   endian: le
   
 enums:

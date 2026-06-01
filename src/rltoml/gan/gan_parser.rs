@@ -405,7 +405,7 @@ impl KStruct for GanParser_GanHeader {
             return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotEqual, src_path: "/types/gan_header/seq/2".to_string() }));
         }
         *self_rc.bitmap_name_len.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.bitmap_name.borrow_mut() = bytes_to_str(&_io.read_bytes_term(0, false, true, true)?.into(), "UTF-8")?;
+        *self_rc.bitmap_name.borrow_mut() = bytes_to_str(&_io.read_bytes_term(0, false, true, true)?.into(), "Shift_JIS")?;
         Ok(())
     }
 }
