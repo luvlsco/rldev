@@ -1,5 +1,4 @@
-pub mod gan_parser;
 pub mod gan_formatter;
+pub mod gan_parser;
 
-pub use gan_formatter::gan_to_toml;
-pub use gan_formatter::format_gan_error;
+pub use gan_formatter::{format_gan_error, gan_to_toml};

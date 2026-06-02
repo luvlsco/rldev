@@ -1,10 +1,9 @@
 /*
- RlToml: convert RealLive auxiliary file formats <> TOML
+ RlToml: convertor between RealLive auxiliary file formats and TOML
  Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
   Copyright (C) 2006 Haeleth
-  Revised 2009-2011 by Richard 23
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -24,11 +23,11 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(
-	name = "RlToml",
-	version = env!("CARGO_PKG_VERSION"),
+	name = "\x1b[1mRlToml",
+	version = concat!(env!("CARGO_PKG_VERSION"), "\x1b[0m"),
 	about = concat!(
 		"convertor between RealLive auxiliary data formats and TOML\n",
-		"Use --info to show more information about this program"),
+		"Use \x1b[1m--info\x1b[0m to show more information about this program"),
 	help_template = concat!(
 		"{name} {version}: {about}\n\n",
 		"\x1b[1;4mUsage:\x1b[0m {usage}\n\n",

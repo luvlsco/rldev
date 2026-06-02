@@ -19,13 +19,14 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use kaitai::{BytesReader, KStruct, KResult, KError, OptRc};
+use kaitai::{KError, KStruct, OptRc};
 
 use super::gan_parser::GanParser;
 use super::gan_parser::GanParser_Frame as GanFrame;
 use super::gan_parser::GanParser_GanDataSection_AnimationFrame as GanAnimFrame;
 
 use crate::toml_formatter::{self, TomlFrameAttrs};
+use crate::binary_reader::{self, ParseError, ParseResult};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 struct FrameAttrs {
@@ -53,13 +54,16 @@ impl FrameAttrs {
 
 	/// Constructs frame attributes from a Kaitai-parsed animation frame.
 	fn from_frame(frame: &GanAnimFrame) -> Self {
-		frame.entries().iter().fold(FrameAttrs::default(), |mut attrs, entry_rc| {
-			let entry = entry_rc.get();
-			let tag = entry.tag().clone();
-			let value = *entry.value();
-			attrs.set_attr(tag, value);
-			attrs
-		})
+		frame
+			.entries()
+			.iter()
+			.fold(FrameAttrs::default(), |mut attrs, entry_rc| {
+				let entry = entry_rc.get();
+				let tag = entry.tag().clone();
+				let value = *entry.value();
+				attrs.set_attr(tag, value);
+				attrs
+			})
 	}
 
 	/// Sets an attribute value based on its tag.
@@ -107,14 +111,22 @@ impl TomlFrameAttrs for FrameAttrs {
 }
 
 /// Parses a GAN file from disk using Kaitai Struct binary parser.
-pub fn parse_gan(path: &str) -> KResult<OptRc<GanParser>> {
-	let reader = BytesReader::open(path)?;
-	let gan = GanParser::read_into::<_, GanParser>(&reader, None, None)?;
-	Ok(gan)
+pub fn parse_gan(path: &str) -> ParseResult<OptRc<GanParser>> {
+	let reader = binary_reader::TrackingReader::open(path)?;
+	match GanParser::read_into::<_, GanParser>(&reader, None, None) {
+		Ok(gan) => Ok(gan),
+		Err(err) => {
+			let ctx = reader
+				.last_read_offset()
+				.zip(reader.last_read_value())
+				.map(|(offset, value)| binary_reader::ReadContext { offset, value });
+			Err(ParseError::kaitai_with_context(err, ctx))
+		}
+	}
 }
 
 /// Converts a GAN animation file to TOML format.
-pub fn gan_to_toml(path: &str) -> KResult<String> {
+pub fn gan_to_toml(path: &str) -> ParseResult<String> {
 	let gan = parse_gan(path)?;
 	let header = gan.gan_header().get();
 	let data_section = gan.gan_data_section().get();
@@ -126,7 +138,9 @@ pub fn gan_to_toml(path: &str) -> KResult<String> {
 
 	for set_rc in data_section.sets().iter() {
 		let set = &set_rc.get();
-		let frames: Vec<FrameAttrs> = set.frames().iter()
+		let frames: Vec<FrameAttrs> = set
+			.frames()
+			.iter()
 			.map(|rc| FrameAttrs::from_frame(&rc.get()))
 			.collect();
 		let defaults = detect_common_attrs(&frames);
@@ -147,6 +161,211 @@ pub fn gan_to_toml(path: &str) -> KResult<String> {
 	}
 
 	Ok(lines.join("\n"))
+}
+
+pub fn format_gan_error(err: &ParseError, path: &str, verbose: bool) -> String {
+	let validation = match err {
+		ParseError::Kaitai(KError::ValidationFailed(v)) => v,
+		ParseError::KaitaiWithContext(KError::ValidationFailed(v), _) => v,
+		_ => return format!("{:?}", err),
+	};
+	let src = validation.src_path.as_str();
+	let kind = &validation.kind;
+	let ctx = err.read_context();
+
+	match src {
+		"/types/gan_header/seq/0" => format_magic_error("first GAN header", 10000, path, 0, kind, src, verbose,),
+
+		"/types/gan_header/seq/1" => format_magic_error("second GAN header", 10000, path, 4, kind, src, verbose,),
+
+		"/types/gan_header/seq/2" => format_magic_error("third GAN header", 10100, path, 8, kind, src, verbose,),
+
+		"/types/gan_data_section/seq/0" => {
+			let offset = binary_reader::read_u4_le_at(path, 12)
+				.map(|name_len| 16 + name_len as usize)
+				.unwrap_or(0);
+			if offset == 0 {
+				"invalid data section start marker (expected 20000)".to_string()
+			} else {
+				format_magic_error("data section start marker", 20000, path, offset, kind, src, verbose)
+			}
+		}
+
+		"/types/gan_data_section/types/animation_set/seq/0" => {
+			let offset = binary_reader::read_u4_le_at(path, 12)
+				.map(|name_len| 16 + name_len as usize + 8)
+				.unwrap_or(0);
+			if offset == 0 {
+				"invalid animation set start marker (expected 30000)".to_string()
+			} else {
+				format_magic_error("animation set start marker", 30000, path, offset, kind, src, verbose)
+			}
+		}
+
+		"/types/gan_data_section/types/frame_entry/seq/0" => {
+			format_frame_entry_error(ctx, kind, src, path, verbose)
+		}
+
+		_ => "parse failed at an unexpected location".to_string(),
+	}
+}
+
+fn format_magic_error(
+	label: &'static str,
+	expected: i64,
+	path: &str,
+	offset: usize,
+	kind: &kaitai::ValidationKind,
+	src_path: &str,
+	verbose: bool,
+) -> String {
+	let (got, got_bytes) = match binary_reader::read_u4_le_full(path, offset) {
+		Ok(v) => v,
+		Err(_) => {
+			return format!(
+				"invalid value at {}: (could not re-read file)",
+				label
+			);
+		}
+	};
+	let expected_bytes = (expected as u32).to_le_bytes();
+
+	if !verbose {
+		return format!(
+			"invalid value at {}: found {} (expected {})",
+			label, got, expected
+		);
+	}
+
+	let dump_start = offset & !0xF;
+	let dump_len = 16;
+
+	let dump_header = match binary_reader::file_size(path) {
+		Ok(size) => format!(
+			"Dump ({} of {} bytes shown, starting at offset 0x{:08X}, error at offset 0x{:08X}):",
+			dump_len, size, dump_start, offset
+		),
+		Err(_) => format!(
+			"Dump (starting at offset 0x{:08X}, error at offset 0x{:08X}):",
+			dump_start, offset
+		),
+	};
+
+	let (dump, caret) = binary_reader::hex_dump_at(path, dump_start, dump_len, offset, 4)
+		.unwrap_or_else(|_| (String::new(), String::new()));
+
+	format!(
+		"invalid value at {label}:\n\
+		 Expected: {expected} (0x{expected:X}, bytes: {exp_hex})\n\
+		 Found: {got} (0x{got:X}, bytes: {got_hex})\n\
+		 Kaitai Error: {kind:?} @ {src_path}\n\
+		 Error offset: 0x{offset:08X} (byte: {offset})\n\
+		 \n\
+		 {dump_header}\n\
+		 {dump}\n\
+		 {caret}",
+		exp_hex = binary_reader::format_bytes_hex(&expected_bytes),
+		got_hex = binary_reader::format_bytes_hex(&got_bytes),
+	)
+}
+
+fn valid_frame_tags() -> [i64; 7] {
+	[
+		i64::from(&GanFrame::Pattern),
+		i64::from(&GanFrame::X),
+		i64::from(&GanFrame::Y),
+		i64::from(&GanFrame::Time),
+		i64::from(&GanFrame::Alpha),
+		i64::from(&GanFrame::Other),
+		i64::from(&GanFrame::FrameEnd),
+	]
+}
+
+fn format_tag_entry(tag: i64) -> String {
+	let bytes = (tag as u32).to_le_bytes();
+	format!("{} (0x{:X}, bytes: {})", tag, tag, binary_reader::format_bytes_hex(&bytes))
+}
+
+fn format_frame_entry_error(
+	ctx: Option<&binary_reader::ReadContext>,
+	kind: &kaitai::ValidationKind,
+	src_path: &str,
+	path: &str,
+	verbose: bool,
+) -> String {
+	let tags = valid_frame_tags();
+	let any_list_short = tags
+		.iter()
+		.map(|t| t.to_string())
+		.collect::<Vec<_>>()
+		.join(", ");
+
+	let (got, got_bytes): (Option<i64>, Option<Vec<u8>>) = match ctx {
+		Some(c) if c.value.len() == 4 => {
+			let mut arr = [0u8; 4];
+			arr.copy_from_slice(&c.value);
+			(Some(u32::from_le_bytes(arr) as i64), Some(c.value.clone()))
+		}
+		_ => (None, None),
+	};
+
+	if !verbose {
+		return match got {
+			Some(g) => format!(
+				"invalid value at frame entry tag: found {} (expected any of: {})",
+				g, any_list_short
+			),
+			None => format!(
+				"invalid value at frame entry tag (expected any of: {})",
+				any_list_short
+			),
+		};
+	}
+
+	let mut out = String::from("invalid value at frame entry tag:\n");
+	out.push_str("Expected any of:\n");
+	for t in tags.iter() {
+		out.push_str(&format!(" - {}\n", format_tag_entry(*t)));
+	}
+
+	if let (Some(g), Some(bytes)) = (got, got_bytes) {
+		out.push('\n');
+		out.push_str(&format!(
+			"Found: {} (0x{:X}, bytes: {})\n",
+			g,
+			g,
+			binary_reader::format_bytes_hex(&bytes)
+		));
+	}
+
+	out.push_str(&format!("Kaitai Error: {:?} @ {}\n", kind, src_path));
+
+	if let (Some(_), Some(c)) = (got, ctx) {
+		out.push_str(&format!(
+			"Error offset: 0x{:08X} (byte: {})\n",
+			c.offset, c.offset
+		));
+		out.push('\n');
+
+		let dump_start = c.offset & !0xF;
+		let dump_len = 16usize;
+		let dump_header = match binary_reader::file_size(path) {
+			Ok(size) => format!(
+				"Dump ({} of {} bytes shown, starting at offset 0x{:08X}, error at offset 0x{:08X}):",
+				dump_len, size, dump_start, c.offset
+			),
+			Err(_) => format!(
+				"Dump (starting at offset 0x{:08X}, error at offset 0x{:08X}):",
+				dump_start, c.offset
+			),
+		};
+		let field_len = 4;
+		let (dump, caret) = binary_reader::hex_dump_at(path, dump_start, dump_len, c.offset, field_len)
+			.unwrap_or_else(|_| (String::new(), String::new()));
+		out.push_str(&format!("{}\n{}\n{}\n", dump_header, dump, caret));
+	}
+
+	out
 }
 
 /// Returns `a` if it differs from `b`, otherwise `None`.
@@ -172,41 +391,4 @@ fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
 			other: keep_if_eq(common.other, frame.other),
 		},
 	)
-}
-
-pub fn format_gan_error(err: &kaitai::KError, verbose: bool) -> String {
-	match err {
-		KError::ValidationFailed(e) => {
-			let error_message = match e.src_path.as_str() {
-				"/types/gan_header/seq/0" =>
-				"invalid value at first GAN header (expected 10000) - maybe it's not a GAN file?",
-
-				"/types/gan_header/seq/1" =>
-				"invalid value at second GAN header (expected 10000) - maybe it's not a GAN file?",
-				
-				"/types/gan_header/seq/2" =>
-				"invalid value at third GAN header (expected 10100) - maybe it's not a GAN file?",
-				
-				"/types/gan_data_section/seq/0" =>
-				"invalid data section start marker (expected 20000)",
-
-				"/types/gan_data_section/types/animation_set/seq/0" =>
-				"invalid animation set start marker (expected 30000)",
-
-				"/types/gan_data_section/types/frame_entry/seq/0" =>
-				"unknown GAN frame entry tag (expected 30100, 30101, 30102, 30103, 30104, 30105, or 999999)",
-
-				_ => "parse failed at an unexpected location, enable verbose mode for details",
-			};
-
-			let error_details = format!("KError::ValidationFailed: [{:?} @ {}]", e.kind, e.src_path);
-
-			if verbose {
-				format!("{}\n{}", error_message, error_details)
-			} else {
-				error_message.to_string()
-			}
-		}
-		_ => format!("{:?}", err),
-	}
 }

@@ -16,7 +16,7 @@
 
 meta:
   id: gan_parser
-  title: "Reallive GAN Format"
+  title: "RealLive GAN Format"
   application: "rltoml"
   file-extension: gan
   license: "GPL-3.0-or-later"
