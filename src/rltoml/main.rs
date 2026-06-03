@@ -23,6 +23,7 @@ mod app;
 mod gan;
 mod toml_formatter;
 mod binary_reader;
+mod error_formatter;
 
 use clap::CommandFactory;
 use std::fs;

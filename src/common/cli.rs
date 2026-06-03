@@ -29,6 +29,7 @@ pub fn get_bin_name(cmd: &Command) -> String {
 		.unwrap_or_else(|| cmd.get_name().to_string())
 }
 
+/// Prints the help message for RlToml, used when parsing empty args.
 pub fn print_help(cmd: Command) {
 	let bin_name = get_bin_name(&cmd);
 

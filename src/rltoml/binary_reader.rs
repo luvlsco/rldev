@@ -18,8 +18,7 @@
 
 use std::cell::{Ref, RefCell, RefMut};
 
-use kaitai::{BytesReader, KStream, ReaderState};
-use thiserror::Error;
+use kaitai::{BytesReader, ReaderState, KStream, KResult};
 
 /// Information about the last successful read, captured at runtime for
 /// error reporting. Used by the kaitai wrapper to surface the value and
@@ -30,53 +29,17 @@ pub struct ReadContext {
 	pub value: Vec<u8>,
 }
 
-#[derive(Debug, Error)]
-pub enum ParseError {
-	#[error("{0:?}")]
-	Kaitai(kaitai::KError),
-
-	#[error("{0:?}")]
-	KaitaiWithContext(kaitai::KError, Option<ReadContext>),
+pub fn open(path: &str) -> KResult<BytesReader> {
+	BytesReader::open(path)
 }
 
-impl ParseError {
-	pub fn kaitai_with_context(err: kaitai::KError, ctx: Option<ReadContext>) -> Self {
-		ParseError::KaitaiWithContext(err, ctx)
-	}
-
-	pub fn read_context(&self) -> Option<&ReadContext> {
-		match self {
-			ParseError::KaitaiWithContext(_, ctx) => ctx.as_ref(),
-			_ => None,
-		}
-	}
-}
-
-impl From<kaitai::KError> for ParseError {
-	fn from(e: kaitai::KError) -> Self {
-		ParseError::Kaitai(e)
-	}
-}
-
-impl From<std::io::Error> for ParseError {
-	fn from(e: std::io::Error) -> Self {
-		ParseError::Kaitai(kaitai::KError::IoError { msg: e.to_string() })
-	}
-}
-
-pub type ParseResult<T> = Result<T, ParseError>;
-
-pub fn open(path: &str) -> ParseResult<BytesReader> {
-	Ok(BytesReader::open(path)?)
-}
-
-pub fn read_u4_le_at(path: &str, offset: usize) -> ParseResult<i64> {
+pub fn read_u4_le_at(path: &str, offset: usize) -> KResult<i64> {
 	let reader = open(path)?;
 	reader.seek(offset)?;
 	Ok(reader.read_u4le()? as i64)
 }
 
-pub fn read_u4_le_full(path: &str, offset: usize) -> ParseResult<(i64, [u8; 4])> {
+pub fn read_u4_le_full(path: &str, offset: usize) -> KResult<(i64, [u8; 4])> {
 	let reader = open(path)?;
 	reader.seek(offset)?;
 	let mut bytes = [0u8; 4];
@@ -99,23 +62,18 @@ pub fn hex_dump_at(
 	dump_len: usize,
 	field_offset: usize,
 	field_len: usize,
-) -> ParseResult<(String, String)> {
+) -> KResult<(String, String)> {
 	let reader = open(path)?;
 	reader.seek(dump_offset)?;
 	let buf = reader.read_bytes(dump_len)?;
 	let dump_line = format!("{:08X} | {}", dump_offset, format_bytes_hex(&buf));
 	let caret_col = 11 + (field_offset - dump_offset) * 3;
 	let caret_len = field_len * 3 - 1;
-	let caret_line = format!(
-		"{:width$}{}",
-		"",
-		"^".repeat(caret_len),
-		width = caret_col
-	);
+	let caret_line = format!("{:width$}{}", "", "^".repeat(caret_len), width = caret_col);
 	Ok((dump_line, caret_line))
 }
 
-pub fn file_size(path: &str) -> ParseResult<u64> {
+pub fn file_size(path: &str) -> std::io::Result<u64> {
 	Ok(std::fs::metadata(path)?.len())
 }
 
@@ -129,7 +87,7 @@ pub struct TrackingReader {
 }
 
 impl TrackingReader {
-	pub fn open(path: &str) -> kaitai::KResult<Self> {
+	pub fn open(path: &str) -> KResult<Self> {
 		Ok(Self {
 			inner: BytesReader::open(path)?,
 			last_offset: RefCell::new(None),
@@ -143,6 +101,12 @@ impl TrackingReader {
 
 	pub fn last_read_value(&self) -> Option<Vec<u8>> {
 		self.last_value.borrow().clone()
+	}
+
+	pub fn read_context(&self) -> Option<ReadContext> {
+		let offset = self.last_read_offset()?;
+		let value = self.last_read_value()?;
+		Some(ReadContext { offset, value })
 	}
 }
 
@@ -163,7 +127,7 @@ impl KStream for TrackingReader {
 		self.inner.get_state_mut()
 	}
 
-	fn read_bytes(&self, len: usize) -> kaitai::KResult<Vec<u8>> {
+	fn read_bytes(&self, len: usize) -> KResult<Vec<u8>> {
 		let offset = self.inner.pos();
 		let result = KStream::read_bytes(&self.inner, len);
 		if let Ok(ref bytes) = result {
@@ -173,7 +137,7 @@ impl KStream for TrackingReader {
 		result
 	}
 
-	fn read_bytes_full(&self) -> kaitai::KResult<Vec<u8>> {
+	fn read_bytes_full(&self) -> KResult<Vec<u8>> {
 		let offset = self.inner.pos();
 		let result = self.inner.read_bytes_full();
 		if let Ok(ref bytes) = result {
