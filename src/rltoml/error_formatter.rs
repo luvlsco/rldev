@@ -16,49 +16,20 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use thiserror::Error;
-
-use indoc::indoc;
-
 use crate::binary_reader::{self, ReadContext};
 
-#[derive(Debug, Error)]
+pub type ParseResult<T> = Result<T, ParseError>;
+
+#[derive(Debug, thiserror::Error)]
 pub enum ParseError {
 	#[error("{0:?}")]
 	Kaitai(kaitai::KError),
 
 	#[error("{err:?}")]
-	KaitaiWithContext { err: kaitai::KError, ctx: Option<ReadContext> },
+	KaitaiWithContext { err: kaitai::KError, context: Option<ReadContext> },
 }
 
-impl ParseError {
-	pub fn kaitai_with_context(err: kaitai::KError, ctx: Option<ReadContext>) -> Self {
-		ParseError::KaitaiWithContext { err, ctx }
-	}
-
-	pub fn read_context(&self) -> Option<&ReadContext> {
-		match self {
-			ParseError::KaitaiWithContext { ctx, .. } => ctx.as_ref(),
-			_ => None,
-		}
-	}
-}
-
-impl From<kaitai::KError> for ParseError {
-	fn from(e: kaitai::KError) -> Self {
-		ParseError::Kaitai(e)
-	}
-}
-
-impl From<std::io::Error> for ParseError {
-	fn from(e: std::io::Error) -> Self {
-		ParseError::Kaitai(kaitai::KError::IoError { msg: e.to_string() })
-	}
-}
-
-pub type ParseResult<T> = Result<T, ParseError>;
-
-/// Specification for a magic-number validation error (single expected value).
+/// Expected value spec for magic-number validation errors.
 pub struct MagicSpec<'a> {
 	pub label: &'a str,
 	pub expected: i32,
@@ -67,7 +38,7 @@ pub struct MagicSpec<'a> {
 	pub src_path: &'a str,
 }
 
-/// Specification for an "any of" enum validation error (e.g. frame entry tag).
+/// Expected-values spec for enum validation errors (e.g. frame entry tags).
 pub struct AnyOfSpec<'a> {
 	pub label: &'a str,
 	pub any_of: &'a [i32],
@@ -77,18 +48,41 @@ pub struct AnyOfSpec<'a> {
 	pub offset: Option<usize>,
 }
 
-/// Formats a value as `N (0xHEX, bytes: XX XX XX XX)`.
+impl ParseError {
+	/// Wraps a Kaitai error with the read context captured before failure.
+	pub fn kaitai_with_context(err: kaitai::KError, context: Option<ReadContext>) -> Self {
+		ParseError::KaitaiWithContext { err, context }
+	}
+
+	/// Returns the read context from a `KaitaiWithContext` error, if present.
+	pub fn read_context(&self) -> Option<&ReadContext> {
+		match self {
+			ParseError::KaitaiWithContext { context, .. } => context.as_ref(),
+			_ => None,
+		}
+	}
+}
+
+impl From<kaitai::KError> for ParseError {
+	/// Converts a Kaitai error into a `ParseError::Kaitai` without context.
+	fn from(e: kaitai::KError) -> Self {
+		ParseError::Kaitai(e)
+	}
+}
+
+impl From<std::io::Error> for ParseError {
+	/// Converts an I/O error into a `ParseError::Kaitai` with an I/O error message.
+	fn from(e: std::io::Error) -> Self {
+		ParseError::Kaitai(kaitai::KError::IoError { msg: e.to_string() })
+	}
+}
+
+/// Formats a value as `0x<BE> (0x<HEX>, bytes: XX XX XX XX)`.
 pub fn format_value(value: i32, bytes: &[u8]) -> String {
 	format!("{} (0x{:X}, bytes: {})", value, value, binary_reader::format_bytes_hex(bytes))
 }
 
-fn le_bytes(value: i32) -> [u8; 4] {
-	(value as u32).to_le_bytes()
-}
-
-/// Formats a 16-byte hex dump aligned to 0x10 around `offset`, plus a caret
-/// under `field_len` bytes at the field position. Returns `None` if the
-/// file can't be read.
+/// Formats a 16-byte hex dump at `offset` with a caret under `field_len` bytes.
 pub fn format_dump(path: &str, offset: usize, field_len: usize) -> Option<String> {
 	let dump_start = offset & !0xF;
 	let dump_len = 16usize;
@@ -101,6 +95,7 @@ pub fn format_dump(path: &str, offset: usize, field_len: usize) -> Option<String
 	Some(format!("{}\n{}\n{}", header, line, caret))
 }
 
+/// Formats a single-value magic-number validation error with hex dump.
 pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
 	let expected_bytes = le_bytes(spec.expected);
 	let (got, got_bytes) = match binary_reader::read_u4_le_full(path, spec.offset) {
@@ -115,7 +110,7 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
 	}
 
 	let mut out = format!(
-		indoc! {"\
+		indoc::indoc! {"\
 			invalid value at {label}:
 			 Expected: {expected} (0x{expected:X}, bytes: {exp_hex})
 			 Found: {got} (0x{got:X}, bytes: {got_hex})
@@ -135,12 +130,12 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
 	if let Some(dump) = format_dump(path, spec.offset, 4) {
 		out.push('\n');
 		out.push_str(&dump);
-		out.push('\n');
 	}
 
 	out
 }
 
+/// Formats an "any of" enum validation error with hex dump.
 pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool) -> String {
 	let any_list_short: Vec<String> = spec.any_of.iter().map(|v| v.to_string()).collect();
 
@@ -174,9 +169,13 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool) -> String {
 		if let Some(dump) = format_dump(path, offset, 4) {
 			out.push('\n');
 			out.push_str(&dump);
-			out.push('\n');
 		}
 	}
 
 	out
+}
+
+/// Converts an `i32` to its little-endian byte representation.
+fn le_bytes(value: i32) -> [u8; 4] {
+	(value as u32).to_le_bytes()
 }

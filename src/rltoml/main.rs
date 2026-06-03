@@ -1,5 +1,5 @@
 /*
- RlToml: convertor between RealLive auxiliary file formats and TOML
+ RlToml: Convertor between RealLive auxiliary data formats and TOML
  Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
@@ -42,12 +42,12 @@ fn main() {
 	}
 	
 	if args.version {
-		print_line(format!("RlToml {} - convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
+		print_line(format!("RlToml {} - Convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
 		std::process::exit(0);
 	}
 
 	if args.info {
-        print_line(format!("RlToml {}: convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
+        print_line(format!("RlToml {}: Convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
         std::process::exit(0);
 	}
 
@@ -66,9 +66,9 @@ fn main() {
 
 	let out_path = Path::new(file).with_extension("gan.toml");
 	if let Err(err) = fs::write(&out_path, toml) {
-		eprint_line(format!("error writing {}: {}", out_path.display(), err));
+		eprint_line(format!("Error writing {}: {}", out_path.display(), err));
 		std::process::exit(1);
 	}
 
-	print_line(format!("sucess: {}", out_path.display()));
+	print_line(format!("success: {}", out_path.display()));
 }

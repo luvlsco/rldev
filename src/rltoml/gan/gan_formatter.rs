@@ -39,6 +39,7 @@ struct FrameAttrs {
 }
 
 impl FrameAttrs {
+	/// Iterates all frame attribute (name, value) pairs, including unset fields as `None`.
 	fn iter_fields(&self) -> impl Iterator<Item = (&'static str, Option<i32>)> {
 		[
 			("pattern", self.pattern),
@@ -51,6 +52,7 @@ impl FrameAttrs {
 		.into_iter()
 	}
 
+	/// Builds `FrameAttrs` by mapping each entry tag in a parsed animation frame to its corresponding field.
 	fn from_frame(frame: &GanAnimFrame) -> Self {
 		frame.entries().iter().fold(FrameAttrs::default(), |mut attrs, entry_rc| {
 			let entry = entry_rc.get();
@@ -59,6 +61,7 @@ impl FrameAttrs {
 		})
 	}
 
+	/// Assigns a value to the matching field for the given frame tag, ignoring `FrameEnd` and `Unknown`.
 	fn set_attr(&mut self, tag: GanFrame, value: i32) {
 		match tag {
 			GanFrame::Pattern => self.pattern = Some(value),
@@ -73,6 +76,7 @@ impl FrameAttrs {
 }
 
 impl TomlFrameAttrs for FrameAttrs {
+	/// Converts set attributes into key-value pairs for inline table output, skipping `None` fields.
 	fn to_inline_table_fields(&self) -> Vec<(String, String)> {
 		self.iter_fields()
 			.filter_map(|(name, value)| {
@@ -87,6 +91,7 @@ impl TomlFrameAttrs for FrameAttrs {
 			.collect()
 	}
 
+	/// Returns a new `FrameAttrs` with only the fields that differ from `defaults`.
 	fn diff_from(&self, defaults: &Self) -> FrameAttrs {
 		FrameAttrs {
 			pattern: diff_opt(self.pattern, defaults.pattern),
@@ -97,14 +102,29 @@ impl TomlFrameAttrs for FrameAttrs {
 			other: diff_opt(self.other, defaults.other),
 		}
 	}
+
+	/// Returns the set of attributes that are identical across all frames, discarding any that vary.
+	fn common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
+		frames.iter().skip(1).fold(
+			frames.first().cloned().unwrap_or_default(),
+			|common, frame| FrameAttrs {
+				pattern: keep_if_eq(common.pattern, frame.pattern),
+				x: keep_if_eq(common.x, frame.x),
+				y: keep_if_eq(common.y, frame.y),
+				time: keep_if_eq(common.time, frame.time),
+				alpha: keep_if_eq(common.alpha, frame.alpha),
+				other: keep_if_eq(common.other, frame.other),
+			},
+		)
+	}
 }
 
 /// Parses a GAN file from disk using Kaitai Struct binary parser.
 pub fn parse_gan(path: &str) -> ParseResult<OptRc<GanParser>> {
 	let reader = crate::binary_reader::TrackingReader::open(path)?;
 	GanParser::read_into::<_, GanParser>(&reader, None, None).map_err(|err| {
-		let ctx = reader.read_context();
-		ParseError::kaitai_with_context(err, ctx)
+		let context = reader.read_context();
+		ParseError::kaitai_with_context(err, context)
 	})
 }
 
@@ -123,7 +143,7 @@ pub fn gan_to_toml(path: &str) -> ParseResult<String> {
 	for set_rc in data_section.sets().iter() {
 		let set = &set_rc.get();
 		let frames: Vec<FrameAttrs> = set.frames().iter().map(|rc| FrameAttrs::from_frame(&rc.get())).collect();
-		let defaults = detect_common_attrs(&frames);
+		let defaults = FrameAttrs::common_attrs(&frames);
 
 		lines.push("[[gan.set]]".to_string());
 		lines.extend(toml_formatter::write_block_fields(&defaults));
@@ -142,6 +162,7 @@ pub fn gan_to_toml(path: &str) -> ParseResult<String> {
 	Ok(lines.join("\n"))
 }
 
+/// Formats a Kaitai validation error with context, expected/found values, and hex dump.
 pub fn format_gan_error(err: &ParseError, path: &str, verbose: bool) -> String {
 	let kerr = match err {
 		ParseError::Kaitai(k) => k,
@@ -152,8 +173,8 @@ pub fn format_gan_error(err: &ParseError, path: &str, verbose: bool) -> String {
 	};
 	let src = validation.src_path.as_str();
 	let kind = &validation.kind;
-	let ctx = err.read_context();
-	let (got, offset) = ctx_to_got_offset(ctx);
+	let context = err.read_context();
+	let (got, offset) = crate::binary_reader::context_to_got_offset(context);
 
 	match src {
 		"/types/gan_header/seq/0" => error_formatter::format_magic(
@@ -196,7 +217,8 @@ pub fn format_gan_error(err: &ParseError, path: &str, verbose: bool) -> String {
 	}
 }
 
-pub fn valid_frame_tags() -> [i32; 7] {
+/// All valid frame entry tag values, including `FrameEnd`.
+fn valid_frame_tags() -> [i32; 7] {
 	[
 		i64::from(&GanFrame::Pattern) as i32,
 		i64::from(&GanFrame::X) as i32,
@@ -208,25 +230,12 @@ pub fn valid_frame_tags() -> [i32; 7] {
 	]
 }
 
-fn ctx_to_got_offset(ctx: Option<&crate::binary_reader::ReadContext>) -> (Option<(i32, Vec<u8>)>, Option<usize>) {
-	let Some(c) = ctx else {
-		return (None, None);
-	};
-	let offset = Some(c.offset);
-	let got = if c.value.len() == 4 {
-		let mut arr = [0u8; 4];
-		arr.copy_from_slice(&c.value);
-		Some((u32::from_le_bytes(arr) as i32, c.value.clone()))
-	} else {
-		None
-	};
-	(got, offset)
-}
-
+/// Computes the expected offset of the data section start marker (20000).
 fn compute_data_section_offset(path: &str) -> Option<usize> {
 	crate::binary_reader::read_u4_le_at(path, 12).ok().map(|n| 16 + n as usize).filter(|&o| o != 0)
 }
 
+/// Computes the expected offset of the animation set start marker (30000).
 fn compute_set_marker_offset(path: &str) -> Option<usize> {
 	crate::binary_reader::read_u4_le_at(path, 12)
 		.ok()
@@ -242,19 +251,4 @@ fn diff_opt(a: Option<i32>, b: Option<i32>) -> Option<i32> {
 /// Returns `a` if it equals `b`, otherwise `None`.
 fn keep_if_eq(a: Option<i32>, b: Option<i32>) -> Option<i32> {
 	a.filter(|v| Some(*v) == b)
-}
-
-/// Detects attributes that are common (identical) across all frames in a set.
-fn detect_common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
-	frames.iter().skip(1).fold(
-		frames.first().cloned().unwrap_or_default(),
-		|common, frame| FrameAttrs {
-			pattern: keep_if_eq(common.pattern, frame.pattern),
-			x: keep_if_eq(common.x, frame.x),
-			y: keep_if_eq(common.y, frame.y),
-			time: keep_if_eq(common.time, frame.time),
-			alpha: keep_if_eq(common.alpha, frame.alpha),
-			other: keep_if_eq(common.other, frame.other),
-		},
-	)
 }

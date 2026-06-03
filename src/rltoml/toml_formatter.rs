@@ -18,14 +18,17 @@
 
 use toml_edit::{InlineTable, Value};
 
+/// Trait for frame attribute types that can be serialized to TOML inline tables.
 pub trait TomlFrameAttrs: Clone + Default {
 	fn to_inline_table_fields(&self) -> Vec<(String, String)>;
 	fn diff_from(&self, defaults: &Self) -> Self;
+	fn common_attrs(frames: &[Self]) -> Self;
 	fn to_block_fields(&self) -> Vec<(String, String)> {
 		self.to_inline_table_fields()
 	}
 }
 
+/// Formats block fields as `"key = value"` lines for TOML output.
 pub fn write_block_fields(attrs: &impl TomlFrameAttrs) -> Vec<String> {
 	attrs.to_block_fields()
 		.into_iter()
@@ -33,6 +36,7 @@ pub fn write_block_fields(attrs: &impl TomlFrameAttrs) -> Vec<String> {
 		.collect()
 }
 
+/// Builds a TOML inline table from key-value pairs, parsing each value.
 pub fn build_inline_table(fields: &[(String, String)]) -> InlineTable {
 	let mut table = InlineTable::new();
 	for (key, value) in fields {

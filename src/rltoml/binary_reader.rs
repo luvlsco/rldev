@@ -29,16 +29,100 @@ pub struct ReadContext {
 	pub value: Vec<u8>,
 }
 
+/// `KStream` wrapper that records the offset and bytes of the last
+/// successful read. Used to surface the failing value's location when
+/// kaitai reports a `ValidationFailed` error.
+pub struct TrackingReader {
+	inner: BytesReader,
+	last_offset: RefCell<Option<usize>>,
+	last_value: RefCell<Option<Vec<u8>>>,
+}
+
+impl TrackingReader {
+	/// Opens a file and wraps it in a `TrackingReader`.
+	pub fn open(path: &str) -> KResult<Self> {
+		Ok(Self {
+			inner: BytesReader::open(path)?,
+			last_offset: RefCell::new(None),
+			last_value: RefCell::new(None),
+		})
+	}
+
+	/// Returns the file offset of the last successful read.
+	pub fn last_read_offset(&self) -> Option<usize> {
+		self.last_offset.borrow().clone()
+	}
+
+	/// Returns the bytes from the last successful read.
+	pub fn last_read_value(&self) -> Option<Vec<u8>> {
+		self.last_value.borrow().clone()
+	}
+
+	/// Builds a `ReadContext` from the last successful read.
+	pub fn read_context(&self) -> Option<ReadContext> {
+		let offset = self.last_read_offset()?;
+		let value = self.last_read_value()?;
+		Some(ReadContext { offset, value })
+	}
+}
+
+impl KStream for TrackingReader {
+	/// Clones the inner `BytesReader`.
+	fn clone(&self) -> BytesReader {
+		Clone::clone(&self.inner)
+	}
+
+	/// Returns the total size of the underlying reader.
+	fn size(&self) -> usize {
+		self.inner.size()
+	}
+
+	/// Delegates to the inner reader's state.
+	fn get_state(&self) -> Ref<'_, ReaderState> {
+		self.inner.get_state()
+	}
+
+	/// Delegates to the inner reader's mutable state.
+	fn get_state_mut(&self) -> RefMut<'_, ReaderState> {
+		self.inner.get_state_mut()
+	}
+
+	/// Reads bytes and records the offset and value for error tracking.
+	fn read_bytes(&self, len: usize) -> KResult<Vec<u8>> {
+		let offset = self.inner.pos();
+		let result = KStream::read_bytes(&self.inner, len);
+		if let Ok(ref bytes) = result {
+			*self.last_offset.borrow_mut() = Some(offset);
+			*self.last_value.borrow_mut() = Some(bytes.clone());
+		}
+		result
+	}
+
+	/// Reads all remaining bytes and records the offset and value for error tracking.
+	fn read_bytes_full(&self) -> KResult<Vec<u8>> {
+		let offset = self.inner.pos();
+		let result = self.inner.read_bytes_full();
+		if let Ok(ref bytes) = result {
+			*self.last_offset.borrow_mut() = Some(offset);
+			*self.last_value.borrow_mut() = Some(bytes.clone());
+		}
+		result
+	}
+}
+
+/// Opens a `BytesReader` from a file path.
 pub fn open(path: &str) -> KResult<BytesReader> {
 	BytesReader::open(path)
 }
 
+/// Reads a little-endian u32 at the given offset.
 pub fn read_u4_le_at(path: &str, offset: usize) -> KResult<i64> {
 	let reader = open(path)?;
 	reader.seek(offset)?;
 	Ok(reader.read_u4le()? as i64)
 }
 
+/// Reads a little-endian u32 and its raw bytes at the given offset.
 pub fn read_u4_le_full(path: &str, offset: usize) -> KResult<(i64, [u8; 4])> {
 	let reader = open(path)?;
 	reader.seek(offset)?;
@@ -48,6 +132,7 @@ pub fn read_u4_le_full(path: &str, offset: usize) -> KResult<(i64, [u8; 4])> {
 	Ok((value, bytes))
 }
 
+/// Formats bytes as space-separated hex values.
 pub fn format_bytes_hex(bytes: &[u8]) -> String {
 	bytes
 		.iter()
@@ -56,6 +141,7 @@ pub fn format_bytes_hex(bytes: &[u8]) -> String {
 		.join(" ")
 }
 
+/// Formats a hex dump line with a caret under the field at `field_offset`.
 pub fn hex_dump_at(
 	path: &str,
 	dump_offset: usize,
@@ -73,77 +159,23 @@ pub fn hex_dump_at(
 	Ok((dump_line, caret_line))
 }
 
+/// Returns the file size in bytes.
 pub fn file_size(path: &str) -> std::io::Result<u64> {
 	Ok(std::fs::metadata(path)?.len())
 }
 
-/// `KStream` wrapper that records the offset and bytes of the last
-/// successful read. Used to surface the failing value's location when
-/// kaitai reports a `ValidationFailed` error.
-pub struct TrackingReader {
-	inner: BytesReader,
-	last_offset: RefCell<Option<usize>>,
-	last_value: RefCell<Option<Vec<u8>>>,
-}
-
-impl TrackingReader {
-	pub fn open(path: &str) -> KResult<Self> {
-		Ok(Self {
-			inner: BytesReader::open(path)?,
-			last_offset: RefCell::new(None),
-			last_value: RefCell::new(None),
-		})
-	}
-
-	pub fn last_read_offset(&self) -> Option<usize> {
-		self.last_offset.borrow().clone()
-	}
-
-	pub fn last_read_value(&self) -> Option<Vec<u8>> {
-		self.last_value.borrow().clone()
-	}
-
-	pub fn read_context(&self) -> Option<ReadContext> {
-		let offset = self.last_read_offset()?;
-		let value = self.last_read_value()?;
-		Some(ReadContext { offset, value })
-	}
-}
-
-impl KStream for TrackingReader {
-	fn clone(&self) -> BytesReader {
-		Clone::clone(&self.inner)
-	}
-
-	fn size(&self) -> usize {
-		self.inner.size()
-	}
-
-	fn get_state(&self) -> Ref<'_, ReaderState> {
-		self.inner.get_state()
-	}
-
-	fn get_state_mut(&self) -> RefMut<'_, ReaderState> {
-		self.inner.get_state_mut()
-	}
-
-	fn read_bytes(&self, len: usize) -> KResult<Vec<u8>> {
-		let offset = self.inner.pos();
-		let result = KStream::read_bytes(&self.inner, len);
-		if let Ok(ref bytes) = result {
-			*self.last_offset.borrow_mut() = Some(offset);
-			*self.last_value.borrow_mut() = Some(bytes.clone());
-		}
-		result
-	}
-
-	fn read_bytes_full(&self) -> KResult<Vec<u8>> {
-		let offset = self.inner.pos();
-		let result = self.inner.read_bytes_full();
-		if let Ok(ref bytes) = result {
-			*self.last_offset.borrow_mut() = Some(offset);
-			*self.last_value.borrow_mut() = Some(bytes.clone());
-		}
-		result
-	}
+/// Converts the read context into the "got" value and offset for error reporting.
+pub fn context_to_got_offset(context: Option<&ReadContext>) -> (Option<(i32, Vec<u8>)>, Option<usize>) {
+	let Some(c) = context else {
+		return (None, None);
+	};
+	let offset = Some(c.offset);
+	let got = if c.value.len() == 4 {
+		let mut arr = [0u8; 4];
+		arr.copy_from_slice(&c.value);
+		Some((u32::from_le_bytes(arr) as i32, c.value.clone()))
+	} else {
+		None
+	};
+	(got, offset)
 }
