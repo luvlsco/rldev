@@ -1,5 +1,5 @@
 /*
- RlToml: GAN to TOML format handling
+ RlToml: GAN to TOML formatting utilities
  Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
@@ -80,13 +80,7 @@ impl TomlFrameAttrs for FrameAttrs {
 	fn to_inline_table_fields(&self) -> Vec<(String, String)> {
 		self.iter_fields()
 			.filter_map(|(name, value)| {
-				value.map(|v| {
-					let formatted = match name {
-						"pattern" => format!("\"{}\"", v),
-						_ => v.to_string(),
-					};
-					(name.to_string(), formatted)
-				})
+				value.map(|v| (name.to_string(), v.to_string()))
 			})
 			.collect()
 	}
@@ -163,7 +157,7 @@ pub fn gan_to_toml(path: &str) -> ParseResult<String> {
 }
 
 /// Formats a Kaitai validation error with context, expected/found values, and hex dump.
-pub fn format_gan_error(err: &ParseError, path: &str, verbose: bool) -> String {
+pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool) -> String {
 	let kerr = match err {
 		ParseError::Kaitai(k) => k,
 		ParseError::KaitaiWithContext { err: k, .. } => k,
@@ -178,23 +172,23 @@ pub fn format_gan_error(err: &ParseError, path: &str, verbose: bool) -> String {
 
 	match src {
 		"/types/gan_header/seq/0" => error_formatter::format_magic(
-			MagicSpec { label: "first GAN header", expected: 10000, offset: 0, kind, src_path: src },
+			MagicSpec { label: "first GAN header", expected: 10_000, offset: 0, kind, src_path: src },
 			path,
 			verbose,
 		),
 		"/types/gan_header/seq/1" => error_formatter::format_magic(
-			MagicSpec { label: "second GAN header", expected: 10000, offset: 4, kind, src_path: src },
+			MagicSpec { label: "second GAN header", expected: 10_000, offset: 4, kind, src_path: src },
 			path,
 			verbose,
 		),
 		"/types/gan_header/seq/2" => error_formatter::format_magic(
-			MagicSpec { label: "third GAN header", expected: 10100, offset: 8, kind, src_path: src },
+			MagicSpec { label: "third GAN header", expected: 10_100, offset: 8, kind, src_path: src },
 			path,
 			verbose,
 		),
 		"/types/gan_data_section/seq/0" => match compute_data_section_offset(path) {
 			Some(off) => error_formatter::format_magic(
-				MagicSpec { label: "data section start marker", expected: 20000, offset: off, kind, src_path: src },
+				MagicSpec { label: "data section start marker", expected: 20_000, offset: off, kind, src_path: src },
 				path,
 				verbose,
 			),
@@ -202,7 +196,7 @@ pub fn format_gan_error(err: &ParseError, path: &str, verbose: bool) -> String {
 		},
 		"/types/gan_data_section/types/animation_set/seq/0" => match compute_set_marker_offset(path) {
 			Some(off) => error_formatter::format_magic(
-				MagicSpec { label: "animation set start marker", expected: 30000, offset: off, kind, src_path: src },
+				MagicSpec { label: "animation set start marker", expected: 30_000, offset: off, kind, src_path: src },
 				path,
 				verbose,
 			),

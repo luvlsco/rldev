@@ -77,7 +77,7 @@ impl From<std::io::Error> for ParseError {
 	}
 }
 
-/// Formats a value as `0x<BE> (0x<HEX>, bytes: XX XX XX XX)`.
+/// Formats a value as `<decimal> (0x<hex>, bytes: <hex bytes>)`.
 pub fn format_value(value: i32, bytes: &[u8]) -> String {
 	format!("{} (0x{:X}, bytes: {})", value, value, binary_reader::format_bytes_hex(bytes))
 }
@@ -101,12 +101,12 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
 	let (got, got_bytes) = match binary_reader::read_u4_le_full(path, spec.offset) {
 		Ok((v, b)) => (v as i32, b),
 		Err(_) => {
-			return format!("invalid value at {}: (could not re-read file)", spec.label);
+			return format!("invalid value at {}: (could not re-read file).", spec.label);
 		}
 	};
 
 	if !verbose {
-		return format!("invalid value at {}: found {} (expected {})", spec.label, got, spec.expected);
+		return format!("invalid value at {}: found {} (expected {}).", spec.label, got, spec.expected);
 	}
 
 	let mut out = format!(
@@ -115,7 +115,7 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
 			 Expected: {expected} (0x{expected:X}, bytes: {exp_hex})
 			 Found: {got} (0x{got:X}, bytes: {got_hex})
 			 Kaitai Error: {kind:?} @ {src}
-			 Error offset: 0x{offset:08X} (byte: {offset})
+			 Hex offset: 0x{offset:08X} (decimal: {offset})
 		"},
 		label = spec.label,
 		expected = spec.expected,
@@ -137,17 +137,12 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
 
 /// Formats an "any of" enum validation error with hex dump.
 pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool) -> String {
-	let any_list_short: Vec<String> = spec.any_of.iter().map(|v| v.to_string()).collect();
-
 	if !verbose {
+		let any_list_short: Vec<String> = spec.any_of.iter().map(|v| v.to_string()).collect();
+		let list_str = any_list_short.join(", ");
 		return match spec.got {
-			Some((g, _)) => format!(
-				"invalid value at {}: found {} (expected any of: {})",
-				spec.label,
-				g,
-				any_list_short.join(", ")
-			),
-			None => format!("invalid value at {} (expected any of: {})", spec.label, any_list_short.join(", ")),
+			Some((g, _)) => format!("invalid value at {}: found {} (expected any of: {}).", spec.label, g, list_str),
+			None => format!("invalid value at {} (expected any of: {}).", spec.label, list_str),
 		};
 	}
 
@@ -165,7 +160,7 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool) -> String {
 	out.push_str(&format!("Kaitai Error: {:?} @ {}\n", spec.kind, spec.src_path));
 
 	if let Some(offset) = spec.offset {
-		out.push_str(&format!("Error offset: 0x{:08X} (byte: {})\n", offset, offset));
+		out.push_str(&format!("Hex offset: 0x{:08X} (decimal: {})\n", offset, offset));
 		if let Some(dump) = format_dump(path, offset, 4) {
 			out.push('\n');
 			out.push_str(&dump);

@@ -1,5 +1,5 @@
 /*
- RlToml: Convertor between RealLive auxiliary data formats and TOML
+ RlToml: Converter between RealLive auxiliary data formats and TOML
  Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
@@ -23,10 +23,10 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(
-	name = "\x1b[1mRlToml",
-	version = concat!(env!("CARGO_PKG_VERSION"), "\x1b[0m"),
+	name = "\x1b[30;107m[ RlToml",
+	version = concat!(env!("CARGO_PKG_VERSION"), " ]\x1b[0m"),
 	about = concat!(
-		"Convertor between RealLive auxiliary data formats and TOML\n",
+		"Converter between RealLive auxiliary data formats and TOML\n",
 		"Use \x1b[1m--info\x1b[0m to show more information about this program"),
 	help_template = concat!(
 		"{name} {version}: {about}\n\n",
@@ -39,28 +39,32 @@ use clap::Parser;
 pub struct Args {
 	#[arg(
 		long = "help",
-		help = "display this usage information"
+		help = "display this usage information",
 	)]
 	pub help: bool,
 
 	#[arg(
 		long = "version",
-		help = "display RlToml version information"
+		help = "display RlToml version information",
 	)]
 	pub version: bool,
 
 	#[arg(
 		long = "info",
-		help = "display detailed information about RlToml and its usage"
+		help = "display detailed information about RlToml and its usage",
 	)]
 	pub info: bool,
 
 	#[arg(
 		short = 'v',
 		long = "verbose",
-		help = "show detailed information about what RlToml is doing")]
+		help = "show detailed information about what RlToml is doing",
+	)]
 	pub verbose: bool,
 	
+	#[arg(
+		value_name = "FILE/FILES",
+	)]
 	pub files: Vec<String>,
 }
 

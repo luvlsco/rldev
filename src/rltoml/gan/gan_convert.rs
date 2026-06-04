@@ -1,0 +1,242 @@
+/*
+ RlToml: TOML to GAN convertion utilities
+ Copyright (C) 2026 luvlsco
+
+ Based on RlXml, originally developed in OCaml by:
+  Copyright (C) 2006 Haeleth
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+use byteorder::{LittleEndian, WriteBytesExt};
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use super::gan_parser::GanParser_Frame as GanFrame;
+
+#[derive(Default, Debug, Clone)]
+struct TomlFrame {
+	pattern: Option<i32>,
+	x: Option<i32>,
+	y: Option<i32>,
+	time: Option<i32>,
+	alpha: Option<i32>,
+	other: Option<i32>,
+}
+
+#[derive(Default, Debug, Clone)]
+struct TomlSet {
+	pattern: Option<i32>,
+	x: Option<i32>,
+	y: Option<i32>,
+	time: Option<i32>,
+	alpha: Option<i32>,
+	other: Option<i32>,
+	frames: Vec<TomlFrame>,
+}
+
+#[derive(Default, Debug, Clone)]
+struct TomlGan {
+	bitmap: String,
+	sets: Vec<TomlSet>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GanWriteError {
+	#[error("{0}")]
+	Io(#[from] std::io::Error),
+	#[error("{0}")]
+	TomlParse(#[from] toml_edit::TomlError),
+	#[error("{0}")]
+	InvalidStructure(String),
+}
+
+pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
+	let full_msg = err.to_string();
+
+	if !verbose {
+		return full_msg.lines().next().map(|l| format!("{}.", l.trim())).unwrap_or_else(|| full_msg.clone());
+	}
+
+	let mut result = String::new();
+	let mut last_line = "";
+	for line in full_msg.lines() {
+		if !result.is_empty() {
+			result.push('\n');
+		}
+		if line.trim().is_empty() {
+			continue;
+		}
+		last_line = line;
+		result.push_str(line);
+	}
+
+	if !result.contains('\n') {
+		if !last_line.is_empty() {
+			return format!("{}.", last_line);
+		}
+		return last_line.to_string();
+	}
+
+	if let Some(pos) = result.find('\n') {
+		result.insert(pos, ':');
+	}
+
+	if !last_line.is_empty() {
+		let first = last_line.chars().next().map(|c| c.to_uppercase().to_string()).unwrap_or_default();
+		let rest = &last_line[last_line.char_indices().next().unwrap().0 + first.len()..];
+		let fixed = if last_line.ends_with('.') {
+			format!("{}{}", first, rest)
+		} else {
+			format!("{}{}.", first, rest)
+		};
+		result = result.trim_end_matches(last_line).to_string();
+		if !result.is_empty() && !result.ends_with('\n') {
+			result.push('\n');
+		}
+		result.push_str(&fixed);
+	}
+
+	result
+}
+
+pub fn toml_to_gan(toml_path: &str, gan_path: &str) -> Result<(), GanWriteError> {
+	let content = std::fs::read_to_string(toml_path)?;
+	let doc: toml_edit::Document<std::string::String> = content.parse()?;
+	let gan = parse_toml_gan(&doc)?;
+	let file = File::create(gan_path)?;
+	let mut oc = BufWriter::new(file);
+	write_gan(&mut oc, &gan)?;
+	oc.flush()?;
+	Ok(())
+}
+
+fn parse_frame_from_inline_table(table: &toml_edit::InlineTable) -> Result<TomlFrame, GanWriteError> {
+	let mut frame = TomlFrame::default();
+	for (key, value) in table.iter() {
+		let v = value
+			.as_integer()
+			.ok_or_else(|| GanWriteError::InvalidStructure(format!("frame field '{}' must be an integer", key)))?;
+		match key {
+			"pattern" => frame.pattern = Some(v as i32),
+			"x" => frame.x = Some(v as i32),
+			"y" => frame.y = Some(v as i32),
+			"time" => frame.time = Some(v as i32),
+			"alpha" => frame.alpha = Some(v as i32),
+			"other" => frame.other = Some(v as i32),
+			_ => return Err(GanWriteError::InvalidStructure(format!("unknown frame field '{}'", key))),
+		}
+	}
+	Ok(frame)
+}
+
+fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteError> {
+	let mut set = TomlSet::default();
+	set.pattern = table.get("pattern").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.x = table.get("x").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.y = table.get("y").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.time = table.get("time").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.alpha = table.get("alpha").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.other = table.get("other").and_then(|i| i.as_integer()).map(|v| v as i32);
+
+	let frames_item = table
+		.get("frames")
+		.ok_or_else(|| GanWriteError::InvalidStructure("set missing 'frames' array".to_string()))?;
+
+	let frames_array = frames_item
+		.as_array()
+		.ok_or_else(|| GanWriteError::InvalidStructure("'frames' must be an array".to_string()))?;
+
+	for item in frames_array.iter() {
+		let inline_table = item
+			.as_inline_table()
+			.ok_or_else(|| GanWriteError::InvalidStructure("frame must be an inline table".to_string()))?;
+		set.frames.push(parse_frame_from_inline_table(inline_table)?);
+	}
+
+	Ok(set)
+}
+
+fn parse_toml_gan(doc: &toml_edit::Document<std::string::String>) -> Result<TomlGan, GanWriteError> {
+	let root = doc
+		.as_table()
+		.get("gan")
+		.ok_or_else(|| GanWriteError::InvalidStructure("missing [gan] section".to_string()))?
+		.as_table()
+		.ok_or_else(|| GanWriteError::InvalidStructure("[gan] must be a table".to_string()))?;
+
+	let bitmap = root
+		.get("bitmap")
+		.ok_or_else(|| GanWriteError::InvalidStructure("[gan] missing 'bitmap'".to_string()))?
+		.as_str()
+		.ok_or_else(|| GanWriteError::InvalidStructure("'bitmap' must be a string".to_string()))?
+		.to_string();
+
+	let set_item = root
+		.get("set")
+		.ok_or_else(|| GanWriteError::InvalidStructure("missing [[gan.set]] entries".to_string()))?;
+
+	let set_array = set_item
+		.as_array_of_tables()
+		.ok_or_else(|| GanWriteError::InvalidStructure("'set' must be an array of tables".to_string()))?;
+
+	let mut gan = TomlGan { bitmap, sets: Vec::new() };
+	for set_table in set_array.iter() {
+		gan.sets.push(parse_set_from_table(set_table)?);
+	}
+
+	Ok(gan)
+}
+
+fn write_frame(oc: &mut BufWriter<File>, frame: &TomlFrame, defaults: &TomlSet) -> Result<(), GanWriteError> {
+	for (tag, value) in [
+		(i64::from(&GanFrame::Pattern) as i32, frame.pattern.or(defaults.pattern)),
+		(i64::from(&GanFrame::X) as i32, frame.x.or(defaults.x)),
+		(i64::from(&GanFrame::Y) as i32, frame.y.or(defaults.y)),
+		(i64::from(&GanFrame::Time) as i32, frame.time.or(defaults.time)),
+		(i64::from(&GanFrame::Alpha) as i32, frame.alpha.or(defaults.alpha)),
+		(i64::from(&GanFrame::Other) as i32, frame.other.or(defaults.other)),
+	] {
+		if let Some(v) = value {
+			oc.write_i32::<LittleEndian>(tag)?;
+			oc.write_i32::<LittleEndian>(v)?;
+		}
+	}
+	oc.write_i32::<LittleEndian>(i64::from(&GanFrame::FrameEnd) as i32)?;
+	Ok(())
+}
+
+fn write_set(oc: &mut BufWriter<File>, set: &TomlSet) -> Result<(), GanWriteError> {
+	oc.write_i32::<LittleEndian>(30_000)?;
+	oc.write_u32::<LittleEndian>(set.frames.len() as u32)?;
+	for frame in &set.frames {
+		write_frame(oc, frame, set)?;
+	}
+	Ok(())
+}
+
+fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan) -> Result<(), GanWriteError> {
+	oc.write_i32::<LittleEndian>(10_000)?;
+	oc.write_i32::<LittleEndian>(10_000)?;
+	oc.write_i32::<LittleEndian>(10_100)?;
+	let bitmap_bytes = gan.bitmap.as_bytes();
+	oc.write_u32::<LittleEndian>(bitmap_bytes.len() as u32 + 1)?;
+	oc.write_all(bitmap_bytes)?;
+	oc.write_u8(0)?;
+	oc.write_i32::<LittleEndian>(20_000)?;
+	oc.write_u32::<LittleEndian>(gan.sets.len() as u32)?;
+	for set in &gan.sets {
+		write_set(oc, set)?;
+	}
+	Ok(())
+}

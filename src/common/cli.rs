@@ -4,13 +4,17 @@ use std::path::Path;
 /// Prints a message followed by an empty line.
 pub fn print_line(msg: impl std::fmt::Display) {
 	println!("{msg}");
-	println!();
+	if !msg.to_string().ends_with('\n') {
+		println!();
+	}
 }
 
 /// Prints an error message to stderr followed by an empty line.
 pub fn eprint_line(msg: impl std::fmt::Display) {
 	eprintln!("{msg}");
-	println!();
+	if !msg.to_string().ends_with('\n') {
+		eprintln!();
+	}
 }
 
 /// Returns the file name (without path) of the given path, or the path itself if it has no file name.

@@ -1,5 +1,5 @@
 /*
- RlToml: Convertor between RealLive auxiliary data formats and TOML
+ RlToml: Converter between RealLive auxiliary data formats and TOML
  Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
@@ -25,50 +25,72 @@ mod toml_formatter;
 mod binary_reader;
 mod error_formatter;
 
-use clap::CommandFactory;
-use std::fs;
-use std::path::Path;
-
 use rldev::common::cli::{get_file_name, print_line, eprint_line};
 
 fn main() {
 	let raw_args: Vec<_> = std::env::args_os().collect();
 	let args = app::parse_args();
 
-	if raw_args.len() == 1 || args.help {
-		let cmd = app::Args::command();
+	// Arg: --help
+	// Print help if "--help" is called explicitly
+	// or if no other arguments or files are provided
+	if args.help || raw_args.len() == 1 || args.files.is_empty() {
+		let cmd = <app::Args as clap::CommandFactory>::command();
 		rldev::common::cli::print_help(cmd);
 		std::process::exit(0);
 	}
-	
+
+	// Arg: --version
+	// Print RlToml version
 	if args.version {
-		print_line(format!("RlToml {} - Convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
+		print_line(format!("RlToml {} - Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
 		std::process::exit(0);
 	}
 
+	// Arg: --info
+	// Print detailed information about RlToml and its usage
 	if args.info {
-        print_line(format!("RlToml {}: Convertor between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
-        std::process::exit(0);
-	}
-
-	if args.files.is_empty() {
-		let cmd = app::Args::command();
-		rldev::common::cli::print_help(cmd);
+		print_line(format!("RlToml {}: Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
 		std::process::exit(0);
 	}
 
 	let file = &args.files[0];
+	let path = std::path::Path::new(file);
 
-	let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
-		eprint_line(format!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_error(&err, file, args.verbose)));
-		std::process::exit(1);
-	});
+	let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+	let is_gan_toml = file_name.ends_with(".gan.toml");
 
-	let out_path = Path::new(file).with_extension("gan.toml");
-	if let Err(err) = fs::write(&out_path, toml) {
-		eprint_line(format!("Error writing {}: {}", out_path.display(), err));
-		std::process::exit(1);
+	let (out_path, conversion): (std::path::PathBuf, &str) =
+		if is_gan_toml {
+			let gan_path = path.with_extension("").with_extension("gan");
+			(gan_path, "GAN binary")
+		} else if file_name.ends_with(".gan") {
+			let toml_path = path.with_extension("gan.toml");
+			(toml_path, "TOML")
+		} else {
+			eprint_line(format!("Unknown file type: {}", file));
+			std::process::exit(1);
+		};
+
+	match conversion {
+		"TOML" => {
+			let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
+				eprint_line(format!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_to_toml_error(&err, file, args.verbose)));
+				std::process::exit(1);
+			});
+			if let Err(err) = std::fs::write(&out_path, toml) {
+				eprint_line(format!("Error writing {}: {}", out_path.display(), err));
+				std::process::exit(1);
+			}
+			print_line(format!("success: {}", out_path.display()));
+		}
+		"GAN binary" => {
+			gan::toml_to_gan(file, out_path.to_str().unwrap()).unwrap_or_else(|err| {
+				eprint_line(format!("Failed to convert \"{}\" to GAN, {}", get_file_name(file), gan::format_toml_to_gan_error(&err, args.verbose)));
+				std::process::exit(1);
+			});
+			print_line(format!("success: {}", out_path.display()));
+		}
+		_ => unreachable!(),
 	}
-
-	print_line(format!("success: {}", out_path.display()));
 }

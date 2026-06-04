@@ -17,7 +17,6 @@
 */
 
 use std::cell::{Ref, RefCell, RefMut};
-
 use kaitai::{BytesReader, ReaderState, KStream, KResult};
 
 /// Information about the last successful read, captured at runtime for
