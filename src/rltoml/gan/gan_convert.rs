@@ -23,25 +23,16 @@ use byteorder::{LittleEndian, WriteBytesExt};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use super::gan_parser::GanParser_Frame as GanFrame;
+use super::FrameAttrs;
 
 #[derive(Default, Debug, Clone)]
 struct TomlFrame {
-	pattern: Option<i32>,
-	x: Option<i32>,
-	y: Option<i32>,
-	time: Option<i32>,
-	alpha: Option<i32>,
-	other: Option<i32>,
+	params: FrameAttrs,
 }
 
 #[derive(Default, Debug, Clone)]
 struct TomlSet {
-	pattern: Option<i32>,
-	x: Option<i32>,
-	y: Option<i32>,
-	time: Option<i32>,
-	alpha: Option<i32>,
-	other: Option<i32>,
+	defaults: FrameAttrs,
 	frames: Vec<TomlFrame>,
 }
 
@@ -128,12 +119,12 @@ fn parse_frame_from_inline_table(table: &toml_edit::InlineTable) -> Result<TomlF
 			.as_integer()
 			.ok_or_else(|| GanWriteError::InvalidStructure(format!("frame field '{}' must be an integer", key)))?;
 		match key {
-			"pattern" => frame.pattern = Some(v as i32),
-			"x" => frame.x = Some(v as i32),
-			"y" => frame.y = Some(v as i32),
-			"time" => frame.time = Some(v as i32),
-			"alpha" => frame.alpha = Some(v as i32),
-			"other" => frame.other = Some(v as i32),
+			"pattern" => frame.params.pattern = Some(v as i32),
+			"x" => frame.params.x = Some(v as i32),
+			"y" => frame.params.y = Some(v as i32),
+			"time" => frame.params.time = Some(v as i32),
+			"alpha" => frame.params.alpha = Some(v as i32),
+			"other" => frame.params.other = Some(v as i32),
 			_ => return Err(GanWriteError::InvalidStructure(format!("unknown frame field '{}'", key))),
 		}
 	}
@@ -142,12 +133,12 @@ fn parse_frame_from_inline_table(table: &toml_edit::InlineTable) -> Result<TomlF
 
 fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteError> {
 	let mut set = TomlSet::default();
-	set.pattern = table.get("pattern").and_then(|i| i.as_integer()).map(|v| v as i32);
-	set.x = table.get("x").and_then(|i| i.as_integer()).map(|v| v as i32);
-	set.y = table.get("y").and_then(|i| i.as_integer()).map(|v| v as i32);
-	set.time = table.get("time").and_then(|i| i.as_integer()).map(|v| v as i32);
-	set.alpha = table.get("alpha").and_then(|i| i.as_integer()).map(|v| v as i32);
-	set.other = table.get("other").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.defaults.pattern = table.get("pattern").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.defaults.x = table.get("x").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.defaults.y = table.get("y").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.defaults.time = table.get("time").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.defaults.alpha = table.get("alpha").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.defaults.other = table.get("other").and_then(|i| i.as_integer()).map(|v| v as i32);
 
 	let frames_item = table
 		.get("frames")
@@ -198,14 +189,14 @@ fn parse_toml_gan(doc: &toml_edit::Document<std::string::String>) -> Result<Toml
 	Ok(gan)
 }
 
-fn write_frame(oc: &mut BufWriter<File>, frame: &TomlFrame, defaults: &TomlSet) -> Result<(), GanWriteError> {
+fn write_frame(oc: &mut BufWriter<File>, frame: &TomlFrame, defaults: &FrameAttrs) -> Result<(), GanWriteError> {
 	for (tag, value) in [
-		(i64::from(&GanFrame::Pattern) as i32, frame.pattern.or(defaults.pattern)),
-		(i64::from(&GanFrame::X) as i32, frame.x.or(defaults.x)),
-		(i64::from(&GanFrame::Y) as i32, frame.y.or(defaults.y)),
-		(i64::from(&GanFrame::Time) as i32, frame.time.or(defaults.time)),
-		(i64::from(&GanFrame::Alpha) as i32, frame.alpha.or(defaults.alpha)),
-		(i64::from(&GanFrame::Other) as i32, frame.other.or(defaults.other)),
+		(i64::from(&GanFrame::Pattern) as i32, frame.params.pattern.or(defaults.pattern)),
+		(i64::from(&GanFrame::X) as i32, frame.params.x.or(defaults.x)),
+		(i64::from(&GanFrame::Y) as i32, frame.params.y.or(defaults.y)),
+		(i64::from(&GanFrame::Time) as i32, frame.params.time.or(defaults.time)),
+		(i64::from(&GanFrame::Alpha) as i32, frame.params.alpha.or(defaults.alpha)),
+		(i64::from(&GanFrame::Other) as i32, frame.params.other.or(defaults.other)),
 	] {
 		if let Some(v) = value {
 			oc.write_i32::<LittleEndian>(tag)?;
@@ -220,7 +211,7 @@ fn write_set(oc: &mut BufWriter<File>, set: &TomlSet) -> Result<(), GanWriteErro
 	oc.write_i32::<LittleEndian>(30_000)?;
 	oc.write_u32::<LittleEndian>(set.frames.len() as u32)?;
 	for frame in &set.frames {
-		write_frame(oc, frame, set)?;
+		write_frame(oc, frame, &set.defaults)?;
 	}
 	Ok(())
 }

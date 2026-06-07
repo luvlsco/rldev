@@ -24,19 +24,10 @@ use kaitai::{KError, KStruct, OptRc};
 use super::gan_parser::GanParser;
 use super::gan_parser::GanParser_Frame as GanFrame;
 use super::gan_parser::GanParser_GanDataSection_AnimationFrame as GanAnimFrame;
+use super::FrameAttrs;
 
 use crate::error_formatter::{self, AnyOfSpec, MagicSpec, ParseError, ParseResult};
 use crate::toml_formatter::{self, TomlFrameAttrs};
-
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
-struct FrameAttrs {
-	pattern: Option<i32>,
-	x: Option<i32>,
-	y: Option<i32>,
-	time: Option<i32>,
-	alpha: Option<i32>,
-	other: Option<i32>,
-}
 
 impl FrameAttrs {
 	/// Iterates all frame attribute (name, value) pairs, including unset fields as `None`.
