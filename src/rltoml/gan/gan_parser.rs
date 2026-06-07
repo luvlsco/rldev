@@ -30,7 +30,7 @@ use std::cell::{Ref, Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 /**
- * \sa https://github.com/eglaysher/rldev/tree/master/src/rlxml Source
+ * \sa https://github.com/eglaysher/rldev/tree/master/src/rlxml/gan.ml Source
  */
 
 #[derive(Default, Debug, Clone)]

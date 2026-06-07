@@ -24,7 +24,7 @@ meta:
   encoding: Shift_JIS
   endian: le
 
-doc-ref: "https://github.com/eglaysher/rldev/tree/master/src/rlxml"
+doc-ref: "https://github.com/eglaysher/rldev/tree/master/src/rlxml/gan.ml"
   
 enums:
   frame:
