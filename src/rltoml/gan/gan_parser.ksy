@@ -17,12 +17,14 @@
 meta:
   id: gan_parser
   title: "RealLive GAN Format"
-  application: "rltoml"
-  file-extension: gan
+  application: "RlToml"
+  file-extension: "gan"
   license: "GPL-3.0-or-later"
   ks-version: 0.11
   encoding: Shift_JIS
   endian: le
+
+doc-ref: "https://github.com/eglaysher/rldev/tree/master/src/rlxml"
   
 enums:
   frame:
