@@ -1,0 +1,87 @@
+digraph {
+	rankdir=LR;
+	node [shape=plaintext];
+	subgraph cluster__gan_parser {
+		label="GanParser";
+		graph[style=dotted];
+
+		gan_parser__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+			<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
+			<TR><TD PORT="gan_header_pos">0</TD><TD PORT="gan_header_size">...</TD><TD>GanHeader</TD><TD PORT="gan_header_type">gan_header</TD></TR>
+			<TR><TD PORT="gan_data_section_pos">...</TD><TD PORT="gan_data_section_size">...</TD><TD>GanDataSection</TD><TD PORT="gan_data_section_type">gan_data_section</TD></TR>
+		</TABLE>>];
+		subgraph cluster__gan_data_section {
+			label="GanParser::GanDataSection";
+			graph[style=dotted];
+
+			gan_data_section__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+				<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
+				<TR><TD PORT="data_section_marker_pos">0</TD><TD PORT="data_section_marker_size">4</TD><TD>u4le</TD><TD PORT="data_section_marker_type">data_section_marker</TD></TR>
+				<TR><TD COLSPAN="4" PORT="data_section_marker__valid">must be equal to 20000</TD></TR>
+				<TR><TD PORT="num_sets_pos">4</TD><TD PORT="num_sets_size">4</TD><TD>u4le</TD><TD PORT="num_sets_type">num_sets</TD></TR>
+				<TR><TD PORT="sets_pos">8</TD><TD PORT="sets_size">...</TD><TD>AnimationSet</TD><TD PORT="sets_type">sets</TD></TR>
+				<TR><TD COLSPAN="4" PORT="sets__repeat">repeat num_sets times</TD></TR>
+			</TABLE>>];
+			subgraph cluster__animation_frame {
+				label="GanParser::GanDataSection::AnimationFrame";
+				graph[style=dotted];
+
+				animation_frame__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+					<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
+					<TR><TD PORT="entries_pos">0</TD><TD PORT="entries_size">8</TD><TD>FrameEntry</TD><TD PORT="entries_type">entries</TD></TR>
+					<TR><TD COLSPAN="4" PORT="entries__repeat">repeat until _.tag == :frame_frame_end</TD></TR>
+				</TABLE>>];
+			}
+			subgraph cluster__animation_set {
+				label="GanParser::GanDataSection::AnimationSet";
+				graph[style=dotted];
+
+				animation_set__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+					<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
+					<TR><TD PORT="set_marker_pos">0</TD><TD PORT="set_marker_size">4</TD><TD>u4le</TD><TD PORT="set_marker_type">set_marker</TD></TR>
+					<TR><TD COLSPAN="4" PORT="set_marker__valid">must be equal to 30000</TD></TR>
+					<TR><TD PORT="num_frames_pos">4</TD><TD PORT="num_frames_size">4</TD><TD>u4le</TD><TD PORT="num_frames_type">num_frames</TD></TR>
+					<TR><TD PORT="frames_pos">8</TD><TD PORT="frames_size">...</TD><TD>AnimationFrame</TD><TD PORT="frames_type">frames</TD></TR>
+					<TR><TD COLSPAN="4" PORT="frames__repeat">repeat num_frames times</TD></TR>
+				</TABLE>>];
+			}
+			subgraph cluster__frame_entry {
+				label="GanParser::GanDataSection::FrameEntry";
+				graph[style=dotted];
+
+				frame_entry__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+					<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
+					<TR><TD PORT="tag_pos">0</TD><TD PORT="tag_size">4</TD><TD>u4le→Frame</TD><TD PORT="tag_type">tag</TD></TR>
+					<TR><TD COLSPAN="4" PORT="tag__valid">must be any of :frame_pattern, :frame_x, :frame_y, :frame_time, :frame_alpha, :frame_other, :frame_frame_end</TD></TR>
+					<TR><TD PORT="value_pos">4</TD><TD PORT="value_size">4</TD><TD>s4le</TD><TD PORT="value_type">value</TD></TR>
+					<TR><TD COLSPAN="4" PORT="value__if">if tag != :frame_frame_end</TD></TR>
+				</TABLE>>];
+			}
+		}
+		subgraph cluster__gan_header {
+			label="GanParser::GanHeader";
+			graph[style=dotted];
+
+			gan_header__seq [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+				<TR><TD BGCOLOR="#E0FFE0">pos</TD><TD BGCOLOR="#E0FFE0">size</TD><TD BGCOLOR="#E0FFE0">type</TD><TD BGCOLOR="#E0FFE0">id</TD></TR>
+				<TR><TD PORT="magic_1_pos">0</TD><TD PORT="magic_1_size">4</TD><TD>u4le</TD><TD PORT="magic_1_type">magic_1</TD></TR>
+				<TR><TD COLSPAN="4" PORT="magic_1__valid">must be equal to 10000</TD></TR>
+				<TR><TD PORT="magic_2_pos">4</TD><TD PORT="magic_2_size">4</TD><TD>u4le</TD><TD PORT="magic_2_type">magic_2</TD></TR>
+				<TR><TD COLSPAN="4" PORT="magic_2__valid">must be equal to 10000</TD></TR>
+				<TR><TD PORT="magic_3_pos">8</TD><TD PORT="magic_3_size">4</TD><TD>u4le</TD><TD PORT="magic_3_type">magic_3</TD></TR>
+				<TR><TD COLSPAN="4" PORT="magic_3__valid">must be equal to 10100</TD></TR>
+				<TR><TD PORT="bitmap_name_len_pos">12</TD><TD PORT="bitmap_name_len_size">4</TD><TD>u4le</TD><TD PORT="bitmap_name_len_type">bitmap_name_len</TD></TR>
+				<TR><TD PORT="bitmap_name_pos">16</TD><TD PORT="bitmap_name_size">...</TD><TD>str(term=0, Shift_JIS)</TD><TD PORT="bitmap_name_type">bitmap_name</TD></TR>
+			</TABLE>>];
+		}
+	}
+	gan_parser__seq:gan_header_type -> gan_header__seq [style=bold];
+	gan_parser__seq:gan_data_section_type -> gan_data_section__seq [style=bold];
+	gan_data_section__seq:sets_type -> animation_set__seq [style=bold];
+	gan_data_section__seq:num_sets_type -> gan_data_section__seq:sets__repeat [color="#404040"];
+	animation_frame__seq:entries_type -> frame_entry__seq [style=bold];
+	frame_entry__seq:tag_type -> animation_frame__seq:entries__repeat [color="#404040"];
+	animation_set__seq:frames_type -> animation_frame__seq [style=bold];
+	animation_set__seq:num_frames_type -> animation_set__seq:frames__repeat [color="#404040"];
+	frame_entry__seq:tag_type -> frame_entry__seq:value__if [color="#404040"];
+}
