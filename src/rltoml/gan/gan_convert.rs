@@ -19,23 +19,27 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use byteorder::{LittleEndian, WriteBytesExt};
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use byteorder::{LittleEndian, WriteBytesExt};
+
 use super::gan_parser::GanParser_Frame as GanFrame;
 use super::FrameAttrs;
 
+/// A frame parsed from TOML, containing override values for set defaults.
 #[derive(Default, Debug, Clone)]
 struct TomlFrame {
 	params: FrameAttrs,
 }
 
+/// A set of animation frames with shared default attribute values.
 #[derive(Default, Debug, Clone)]
 struct TomlSet {
 	defaults: FrameAttrs,
 	frames: Vec<TomlFrame>,
 }
 
+/// The complete TOML representation of a GAN file.
 #[derive(Default, Debug, Clone)]
 struct TomlGan {
 	bitmap: String,
@@ -52,6 +56,8 @@ pub enum GanWriteError {
 	InvalidStructure(String),
 }
 
+/// Formats a TOML-to-GAN conversion error for display.
+/// Non-verbose mode shows only the first line; verbose mode shows full context.
 pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
 	let full_msg = err.to_string();
 
@@ -101,6 +107,7 @@ pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
 	result
 }
 
+/// Converts a TOML file to a GAN binary file.
 pub fn toml_to_gan(toml_path: &str, gan_path: &str) -> Result<(), GanWriteError> {
 	let content = std::fs::read_to_string(toml_path)?;
 	let doc: toml_edit::Document<std::string::String> = content.parse()?;
@@ -112,6 +119,7 @@ pub fn toml_to_gan(toml_path: &str, gan_path: &str) -> Result<(), GanWriteError>
 	Ok(())
 }
 
+/// Parses a single frame from a TOML inline table.
 fn parse_frame_from_inline_table(table: &toml_edit::InlineTable) -> Result<TomlFrame, GanWriteError> {
 	let mut frame = TomlFrame::default();
 	for (key, value) in table.iter() {
@@ -131,6 +139,7 @@ fn parse_frame_from_inline_table(table: &toml_edit::InlineTable) -> Result<TomlF
 	Ok(frame)
 }
 
+/// Parses a set table from TOML, including default attributes and all frames.
 fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteError> {
 	let mut set = TomlSet::default();
 	set.defaults.pattern = table.get("pattern").and_then(|i| i.as_integer()).map(|v| v as i32);
@@ -158,6 +167,7 @@ fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteErr
 	Ok(set)
 }
 
+/// Parses a complete TOML document into a `TomlGan` structure.
 fn parse_toml_gan(doc: &toml_edit::Document<std::string::String>) -> Result<TomlGan, GanWriteError> {
 	let root = doc
 		.as_table()
@@ -189,6 +199,8 @@ fn parse_toml_gan(doc: &toml_edit::Document<std::string::String>) -> Result<Toml
 	Ok(gan)
 }
 
+/// Writes a single frame's tag-value pairs to the binary output.
+/// Uses set defaults for any attributes not specified in the frame.
 fn write_frame(oc: &mut BufWriter<File>, frame: &TomlFrame, defaults: &FrameAttrs) -> Result<(), GanWriteError> {
 	for (tag, value) in [
 		(i64::from(&GanFrame::Pattern) as i32, frame.params.pattern.or(defaults.pattern)),
@@ -207,6 +219,7 @@ fn write_frame(oc: &mut BufWriter<File>, frame: &TomlFrame, defaults: &FrameAttr
 	Ok(())
 }
 
+/// Writes a set marker, frame count, and all frames in the set.
 fn write_set(oc: &mut BufWriter<File>, set: &TomlSet) -> Result<(), GanWriteError> {
 	oc.write_i32::<LittleEndian>(30_000)?;
 	oc.write_u32::<LittleEndian>(set.frames.len() as u32)?;
@@ -216,6 +229,7 @@ fn write_set(oc: &mut BufWriter<File>, set: &TomlSet) -> Result<(), GanWriteErro
 	Ok(())
 }
 
+/// Writes the complete GAN file: header, bitmap name, data section with all sets.
 fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan) -> Result<(), GanWriteError> {
 	oc.write_i32::<LittleEndian>(10_000)?;
 	oc.write_i32::<LittleEndian>(10_000)?;

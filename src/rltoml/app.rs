@@ -21,6 +21,7 @@
 
 use clap::Parser;
 
+/// Command-line arguments/options for RlToml.
 #[derive(Parser, Debug)]
 #[command(
 	name = "\x1b[30;107m[ RlToml",
@@ -68,6 +69,7 @@ pub struct Args {
 	pub files: Vec<String>,
 }
 
+/// Parses command-line arguments using Clap.
 pub fn parse_args() -> Args {
 	Args::parse()
 }
