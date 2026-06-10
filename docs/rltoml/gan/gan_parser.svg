@@ -1,15 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1966pt" height="553pt" viewBox="0.00 0.00 1966.00 553.00">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1944pt" height="553pt" viewBox="0.00 0.00 1944.00 553.00">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 549)">
-<polygon fill="white" stroke="none" points="-4,4 -4,-549 1962.49,-549 1962.49,4 -4,4"/>
+<polygon fill="white" stroke="none" points="-4,4 -4,-549 1939.94,-549 1939.94,4 -4,4"/>
 <g id="clust1" class="cluster">
 <title>cluster__gan_parser</title>
-<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="8,-8 8,-537 1950.49,-537 1950.49,-8 8,-8"/>
-<text xml:space="preserve" text-anchor="middle" x="979.25" y="-520.4" font-family="Times,serif" font-size="14.00">GanParser</text>
+<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="8,-8 8,-537 1927.94,-537 1927.94,-8 8,-8"/>
+<text xml:space="preserve" text-anchor="middle" x="967.97" y="-520.4" font-family="Times,serif" font-size="14.00">GanParser</text>
 </g>
 <g id="clust2" class="cluster">
 <title>cluster__gan_data_section</title>
-<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="328.6,-16 328.6,-242 1942.49,-242 1942.49,-16 328.6,-16"/>
-<text xml:space="preserve" text-anchor="middle" x="1135.55" y="-225.4" font-family="Times,serif" font-size="14.00">GanParser::GanDataSection</text>
+<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="328.6,-16 328.6,-242 1919.94,-242 1919.94,-16 328.6,-16"/>
+<text xml:space="preserve" text-anchor="middle" x="1124.27" y="-225.4" font-family="Times,serif" font-size="14.00">GanParser::GanDataSection</text>
 </g>
 <g id="clust3" class="cluster">
 <title>cluster__animation_frame</title>
@@ -23,8 +23,8 @@
 </g>
 <g id="clust5" class="cluster">
 <title>cluster__frame_entry</title>
-<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="1266.77,-24 1266.77,-187 1934.49,-187 1934.49,-24 1266.77,-24"/>
-<text xml:space="preserve" text-anchor="middle" x="1600.63" y="-170.4" font-family="Times,serif" font-size="14.00">GanParser::GanDataSection::FrameEntry</text>
+<polygon fill="none" stroke="black" stroke-dasharray="1,5" points="1266.77,-24 1266.77,-187 1911.94,-187 1911.94,-24 1266.77,-24"/>
+<text xml:space="preserve" text-anchor="middle" x="1589.35" y="-170.4" font-family="Times,serif" font-size="14.00">GanParser::GanDataSection::FrameEntry</text>
 </g>
 <g id="clust6" class="cluster">
 <title>cluster__gan_header</title>
@@ -266,44 +266,44 @@
 <!-- frame_entry__seq -->
 <g id="node5" class="node">
 <title>frame_entry__seq</title>
-<polygon fill="#e0ffe0" stroke="none" points="1282.77,-127.2 1282.77,-150 1425.67,-150 1425.67,-127.2 1282.77,-127.2"/>
-<polygon fill="none" stroke="black" points="1282.77,-127.2 1282.77,-150 1425.67,-150 1425.67,-127.2 1282.77,-127.2"/>
-<text xml:space="preserve" text-anchor="start" x="1344.49" y="-134.4" font-family="Times,serif" font-size="14.00">pos</text>
-<polygon fill="#e0ffe0" stroke="none" points="1425.67,-127.2 1425.67,-150 1570.89,-150 1570.89,-127.2 1425.67,-127.2"/>
-<polygon fill="none" stroke="black" points="1425.67,-127.2 1425.67,-150 1570.89,-150 1570.89,-127.2 1425.67,-127.2"/>
-<text xml:space="preserve" text-anchor="start" x="1487.4" y="-134.4" font-family="Times,serif" font-size="14.00">size</text>
-<polygon fill="#e0ffe0" stroke="none" points="1570.89,-127.2 1570.89,-150 1764.72,-150 1764.72,-127.2 1570.89,-127.2"/>
-<polygon fill="none" stroke="black" points="1570.89,-127.2 1570.89,-150 1764.72,-150 1764.72,-127.2 1570.89,-127.2"/>
-<text xml:space="preserve" text-anchor="start" x="1655.75" y="-134.4" font-family="Times,serif" font-size="14.00">type</text>
-<polygon fill="#e0ffe0" stroke="none" points="1764.72,-127.2 1764.72,-150 1918.49,-150 1918.49,-127.2 1764.72,-127.2"/>
-<polygon fill="none" stroke="black" points="1764.72,-127.2 1764.72,-150 1918.49,-150 1918.49,-127.2 1764.72,-127.2"/>
-<text xml:space="preserve" text-anchor="start" x="1836.16" y="-134.4" font-family="Times,serif" font-size="14.00">id</text>
-<polygon fill="none" stroke="black" points="1282.77,-104.4 1282.77,-127.2 1425.67,-127.2 1425.67,-104.4 1282.77,-104.4"/>
-<text xml:space="preserve" text-anchor="start" x="1350.72" y="-111.6" font-family="Times,serif" font-size="14.00">0</text>
-<polygon fill="none" stroke="black" points="1425.67,-104.4 1425.67,-127.2 1570.89,-127.2 1570.89,-104.4 1425.67,-104.4"/>
-<text xml:space="preserve" text-anchor="start" x="1494.78" y="-111.6" font-family="Times,serif" font-size="14.00">4</text>
-<polygon fill="none" stroke="black" points="1570.89,-104.4 1570.89,-127.2 1764.72,-127.2 1764.72,-104.4 1570.89,-104.4"/>
-<text xml:space="preserve" text-anchor="start" x="1632.62" y="-111.6" font-family="Times,serif" font-size="14.00">u4le→Frame</text>
-<polygon fill="none" stroke="black" points="1764.72,-104.4 1764.72,-127.2 1918.49,-127.2 1918.49,-104.4 1764.72,-104.4"/>
-<text xml:space="preserve" text-anchor="start" x="1833.05" y="-111.6" font-family="Times,serif" font-size="14.00">tag</text>
-<polygon fill="none" stroke="black" points="1282.77,-81.6 1282.77,-104.4 1918.49,-104.4 1918.49,-81.6 1282.77,-81.6"/>
-<text xml:space="preserve" text-anchor="start" x="1285.77" y="-88.8" font-family="Times,serif" font-size="14.00">must be any of :frame_pattern, :frame_x, :frame_y, :frame_time, :frame_alpha, :frame_other, :frame_frame_end</text>
-<polygon fill="none" stroke="black" points="1282.77,-58.8 1282.77,-81.6 1425.67,-81.6 1425.67,-58.8 1282.77,-58.8"/>
-<text xml:space="preserve" text-anchor="start" x="1350.72" y="-66" font-family="Times,serif" font-size="14.00">4</text>
-<polygon fill="none" stroke="black" points="1425.67,-58.8 1425.67,-81.6 1570.89,-81.6 1570.89,-58.8 1425.67,-58.8"/>
-<text xml:space="preserve" text-anchor="start" x="1494.78" y="-66" font-family="Times,serif" font-size="14.00">4</text>
-<polygon fill="none" stroke="black" points="1570.89,-58.8 1570.89,-81.6 1764.72,-81.6 1764.72,-58.8 1570.89,-58.8"/>
-<text xml:space="preserve" text-anchor="start" x="1656.53" y="-66" font-family="Times,serif" font-size="14.00">s4le</text>
-<polygon fill="none" stroke="black" points="1764.72,-58.8 1764.72,-81.6 1918.49,-81.6 1918.49,-58.8 1764.72,-58.8"/>
-<text xml:space="preserve" text-anchor="start" x="1826.45" y="-66" font-family="Times,serif" font-size="14.00">value</text>
-<polygon fill="none" stroke="black" points="1282.77,-36 1282.77,-58.8 1918.49,-58.8 1918.49,-36 1282.77,-36"/>
-<text xml:space="preserve" text-anchor="start" x="1524.58" y="-43.2" font-family="Times,serif" font-size="14.00">if tag != :frame_frame_end</text>
+<polygon fill="#e0ffe0" stroke="none" points="1282.77,-127.2 1282.77,-150 1420.03,-150 1420.03,-127.2 1282.77,-127.2"/>
+<polygon fill="none" stroke="black" points="1282.77,-127.2 1282.77,-150 1420.03,-150 1420.03,-127.2 1282.77,-127.2"/>
+<text xml:space="preserve" text-anchor="start" x="1341.68" y="-134.4" font-family="Times,serif" font-size="14.00">pos</text>
+<polygon fill="#e0ffe0" stroke="none" points="1420.03,-127.2 1420.03,-150 1559.62,-150 1559.62,-127.2 1420.03,-127.2"/>
+<polygon fill="none" stroke="black" points="1420.03,-127.2 1420.03,-150 1559.62,-150 1559.62,-127.2 1420.03,-127.2"/>
+<text xml:space="preserve" text-anchor="start" x="1478.94" y="-134.4" font-family="Times,serif" font-size="14.00">size</text>
+<polygon fill="#e0ffe0" stroke="none" points="1559.62,-127.2 1559.62,-150 1747.81,-150 1747.81,-127.2 1559.62,-127.2"/>
+<polygon fill="none" stroke="black" points="1559.62,-127.2 1559.62,-150 1747.81,-150 1747.81,-127.2 1559.62,-127.2"/>
+<text xml:space="preserve" text-anchor="start" x="1641.66" y="-134.4" font-family="Times,serif" font-size="14.00">type</text>
+<polygon fill="#e0ffe0" stroke="none" points="1747.81,-127.2 1747.81,-150 1895.94,-150 1895.94,-127.2 1747.81,-127.2"/>
+<polygon fill="none" stroke="black" points="1747.81,-127.2 1747.81,-150 1895.94,-150 1895.94,-127.2 1747.81,-127.2"/>
+<text xml:space="preserve" text-anchor="start" x="1816.43" y="-134.4" font-family="Times,serif" font-size="14.00">id</text>
+<polygon fill="none" stroke="black" points="1282.77,-104.4 1282.77,-127.2 1420.03,-127.2 1420.03,-104.4 1282.77,-104.4"/>
+<text xml:space="preserve" text-anchor="start" x="1347.9" y="-111.6" font-family="Times,serif" font-size="14.00">0</text>
+<polygon fill="none" stroke="black" points="1420.03,-104.4 1420.03,-127.2 1559.62,-127.2 1559.62,-104.4 1420.03,-104.4"/>
+<text xml:space="preserve" text-anchor="start" x="1486.33" y="-111.6" font-family="Times,serif" font-size="14.00">4</text>
+<polygon fill="none" stroke="black" points="1559.62,-104.4 1559.62,-127.2 1747.81,-127.2 1747.81,-104.4 1559.62,-104.4"/>
+<text xml:space="preserve" text-anchor="start" x="1618.53" y="-111.6" font-family="Times,serif" font-size="14.00">u4le→Frame</text>
+<polygon fill="none" stroke="black" points="1747.81,-104.4 1747.81,-127.2 1895.94,-127.2 1895.94,-104.4 1747.81,-104.4"/>
+<text xml:space="preserve" text-anchor="start" x="1813.32" y="-111.6" font-family="Times,serif" font-size="14.00">tag</text>
+<polygon fill="none" stroke="black" points="1282.77,-81.6 1282.77,-104.4 1895.94,-104.4 1895.94,-81.6 1282.77,-81.6"/>
+<text xml:space="preserve" text-anchor="start" x="1285.77" y="-88.8" font-family="Times,serif" font-size="14.00">must be any of :frame_pattern, :frame_x, :frame_y, :frame_time, :frame_alpha, :frame_z, :frame_frame_end</text>
+<polygon fill="none" stroke="black" points="1282.77,-58.8 1282.77,-81.6 1420.03,-81.6 1420.03,-58.8 1282.77,-58.8"/>
+<text xml:space="preserve" text-anchor="start" x="1347.9" y="-66" font-family="Times,serif" font-size="14.00">4</text>
+<polygon fill="none" stroke="black" points="1420.03,-58.8 1420.03,-81.6 1559.62,-81.6 1559.62,-58.8 1420.03,-58.8"/>
+<text xml:space="preserve" text-anchor="start" x="1486.33" y="-66" font-family="Times,serif" font-size="14.00">4</text>
+<polygon fill="none" stroke="black" points="1559.62,-58.8 1559.62,-81.6 1747.81,-81.6 1747.81,-58.8 1559.62,-58.8"/>
+<text xml:space="preserve" text-anchor="start" x="1642.44" y="-66" font-family="Times,serif" font-size="14.00">s4le</text>
+<polygon fill="none" stroke="black" points="1747.81,-58.8 1747.81,-81.6 1895.94,-81.6 1895.94,-58.8 1747.81,-58.8"/>
+<text xml:space="preserve" text-anchor="start" x="1806.71" y="-66" font-family="Times,serif" font-size="14.00">value</text>
+<polygon fill="none" stroke="black" points="1282.77,-36 1282.77,-58.8 1895.94,-58.8 1895.94,-36 1282.77,-36"/>
+<text xml:space="preserve" text-anchor="start" x="1513.3" y="-43.2" font-family="Times,serif" font-size="14.00">if tag != :frame_frame_end</text>
 </g>
 <!-- animation_frame__seq&#45;&gt;frame_entry__seq -->
 <g id="edge5" class="edge">
 <title>animation_frame__seq:entries_type-&gt;frame_entry__seq</title>
-<path fill="none" stroke="black" stroke-width="2" d="M1205.96,-93C1224.74,-93 1244.03,-93 1263.49,-93"/>
-<polygon fill="black" stroke="black" stroke-width="2" points="1261.94,-96.5 1271.94,-93 1261.94,-89.5 1261.94,-96.5"/>
+<path fill="none" stroke="black" stroke-width="2" d="M1205.96,-93C1224.69,-93 1243.93,-93 1263.35,-93"/>
+<polygon fill="black" stroke="black" stroke-width="2" points="1261.78,-96.5 1271.78,-93 1261.78,-89.5 1261.78,-96.5"/>
 </g>
 <!-- animation_set__seq&#45;&gt;animation_frame__seq -->
 <g id="edge7" class="edge">
@@ -320,14 +320,14 @@
 <!-- frame_entry__seq&#45;&gt;animation_frame__seq -->
 <g id="edge6" class="edge">
 <title>frame_entry__seq:tag_type-&gt;animation_frame__seq:entries__repeat</title>
-<path fill="none" stroke="#404040" d="M1919.49,-115.8C1936.48,-115.8 1930.66,-142.15 1918.49,-154 1713.56,-353.64 1533.41,-276.29 1274.77,-154 1235.11,-135.25 1250.56,-81.21 1217.32,-71.65"/>
+<path fill="none" stroke="#404040" d="M1896.94,-115.8C1913.93,-115.8 1908.11,-142.15 1895.94,-154 1698.19,-346.65 1524.35,-272.01 1274.77,-154 1235.11,-135.25 1250.56,-81.21 1217.32,-71.65"/>
 <polygon fill="#404040" stroke="#404040" points="1217.82,-68.19 1207.46,-70.39 1216.93,-75.13 1217.82,-68.19"/>
 </g>
 <!-- frame_entry__seq&#45;&gt;frame_entry__seq -->
 <g id="edge9" class="edge">
 <title>frame_entry__seq:tag_type-&gt;frame_entry__seq:value__if</title>
-<path fill="none" stroke="#404040" d="M1764.74,-118.37C1519.41,-124.29 1020.27,-120.12 1020.27,-81.6 1020.27,-58 1135.71,-47.29 1272.01,-43.9"/>
-<polygon fill="#404040" stroke="#404040" points="1271.7,-47.41 1281.62,-43.68 1271.54,-40.41 1271.7,-47.41"/>
+<path fill="none" stroke="#404040" d="M1748.07,-118.35C1510.42,-124.3 1025.91,-120.16 1025.91,-81.6 1025.91,-57.92 1138.74,-47.22 1271.64,-43.87"/>
+<polygon fill="#404040" stroke="#404040" points="1271.47,-47.37 1281.38,-43.64 1271.3,-40.38 1271.47,-47.37"/>
 </g>
 </g>
 </svg>

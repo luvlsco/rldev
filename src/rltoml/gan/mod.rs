@@ -12,5 +12,5 @@ pub struct FrameAttrs {
 	pub y: Option<i32>,
 	pub time: Option<i32>,
 	pub alpha: Option<i32>,
-	pub other: Option<i32>,
+	pub z: Option<i32>,
 }

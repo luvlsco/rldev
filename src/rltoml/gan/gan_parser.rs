@@ -90,7 +90,7 @@ pub enum GanParser_Frame {
     Y,
     Time,
     Alpha,
-    Other,
+    Z,
     FrameEnd,
     Unknown(i64),
 }
@@ -104,7 +104,7 @@ impl TryFrom<i64> for GanParser_Frame {
             30102 => Ok(GanParser_Frame::Y),
             30103 => Ok(GanParser_Frame::Time),
             30104 => Ok(GanParser_Frame::Alpha),
-            30105 => Ok(GanParser_Frame::Other),
+            30105 => Ok(GanParser_Frame::Z),
             999999 => Ok(GanParser_Frame::FrameEnd),
             _ => Ok(GanParser_Frame::Unknown(flag)),
         }
@@ -119,7 +119,7 @@ impl From<&GanParser_Frame> for i64 {
             GanParser_Frame::Y => 30102,
             GanParser_Frame::Time => 30103,
             GanParser_Frame::Alpha => 30104,
-            GanParser_Frame::Other => 30105,
+            GanParser_Frame::Z => 30105,
             GanParser_Frame::FrameEnd => 999999,
             GanParser_Frame::Unknown(v) => v
         }
@@ -340,7 +340,7 @@ impl KStruct for GanParser_GanDataSection_FrameEntry {
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
         *self_rc.tag.borrow_mut() = (_io.read_u4le()? as i64).try_into()?;
-        if !( ((*self_rc.tag() == GanParser_Frame::Pattern) || (*self_rc.tag() == GanParser_Frame::X) || (*self_rc.tag() == GanParser_Frame::Y) || (*self_rc.tag() == GanParser_Frame::Time) || (*self_rc.tag() == GanParser_Frame::Alpha) || (*self_rc.tag() == GanParser_Frame::Other) || (*self_rc.tag() == GanParser_Frame::FrameEnd)) ) {
+        if !( ((*self_rc.tag() == GanParser_Frame::Pattern) || (*self_rc.tag() == GanParser_Frame::X) || (*self_rc.tag() == GanParser_Frame::Y) || (*self_rc.tag() == GanParser_Frame::Time) || (*self_rc.tag() == GanParser_Frame::Alpha) || (*self_rc.tag() == GanParser_Frame::Z) || (*self_rc.tag() == GanParser_Frame::FrameEnd)) ) {
             return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotAnyOf, src_path: "/types/gan_data_section/types/frame_entry/seq/0".to_string() }));
         }
         if *self_rc.tag() != GanParser_Frame::FrameEnd {

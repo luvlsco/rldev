@@ -33,7 +33,7 @@ enums:
     30102: y
     30103: time
     30104: alpha
-    30105: other
+    30105: z # Parameter not supported by the system (システムが未対応のパラメータです)
     999999: frame_end
 
 seq:
@@ -111,7 +111,7 @@ types:
                 - frame::y
                 - frame::time
                 - frame::alpha
-                - frame::other
+                - frame::z
                 - frame::frame_end
 
           - id: value

@@ -38,7 +38,7 @@ impl FrameAttrs {
 			("y", self.y),
 			("time", self.time),
 			("alpha", self.alpha),
-			("other", self.other),
+			("z", self.z),
 		]
 		.into_iter()
 	}
@@ -60,7 +60,7 @@ impl FrameAttrs {
 			GanFrame::Y => self.y = Some(value),
 			GanFrame::Time => self.time = Some(value),
 			GanFrame::Alpha => self.alpha = Some(value),
-			GanFrame::Other => self.other = Some(value),
+			GanFrame::Z => self.z = Some(value),
 			GanFrame::FrameEnd | GanFrame::Unknown(_) => (),
 		}
 	}
@@ -84,7 +84,7 @@ impl TomlFrameAttrs for FrameAttrs {
 			y: diff_opt(self.y, defaults.y),
 			time: diff_opt(self.time, defaults.time),
 			alpha: diff_opt(self.alpha, defaults.alpha),
-			other: diff_opt(self.other, defaults.other),
+			z: diff_opt(self.z, defaults.z),
 		}
 	}
 
@@ -98,7 +98,7 @@ impl TomlFrameAttrs for FrameAttrs {
 				y: keep_if_eq(common.y, frame.y),
 				time: keep_if_eq(common.time, frame.time),
 				alpha: keep_if_eq(common.alpha, frame.alpha),
-				other: keep_if_eq(common.other, frame.other),
+				z: keep_if_eq(common.z, frame.z),
 			},
 		)
 	}
@@ -210,7 +210,7 @@ fn valid_frame_tags() -> [i32; 7] {
 		i64::from(&GanFrame::Y) as i32,
 		i64::from(&GanFrame::Time) as i32,
 		i64::from(&GanFrame::Alpha) as i32,
-		i64::from(&GanFrame::Other) as i32,
+		i64::from(&GanFrame::Z) as i32,
 		i64::from(&GanFrame::FrameEnd) as i32,
 	]
 }

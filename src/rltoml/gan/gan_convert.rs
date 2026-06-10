@@ -132,7 +132,7 @@ fn parse_frame_from_inline_table(table: &toml_edit::InlineTable) -> Result<TomlF
 			"y" => frame.params.y = Some(v as i32),
 			"time" => frame.params.time = Some(v as i32),
 			"alpha" => frame.params.alpha = Some(v as i32),
-			"other" => frame.params.other = Some(v as i32),
+			"z" => frame.params.z = Some(v as i32),
 			_ => return Err(GanWriteError::InvalidStructure(format!("unknown frame field '{}'", key))),
 		}
 	}
@@ -147,7 +147,7 @@ fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteErr
 	set.defaults.y = table.get("y").and_then(|i| i.as_integer()).map(|v| v as i32);
 	set.defaults.time = table.get("time").and_then(|i| i.as_integer()).map(|v| v as i32);
 	set.defaults.alpha = table.get("alpha").and_then(|i| i.as_integer()).map(|v| v as i32);
-	set.defaults.other = table.get("other").and_then(|i| i.as_integer()).map(|v| v as i32);
+	set.defaults.z = table.get("z").and_then(|i| i.as_integer()).map(|v| v as i32);
 
 	let frames_item = table
 		.get("frames")
@@ -208,7 +208,7 @@ fn write_frame(oc: &mut BufWriter<File>, frame: &TomlFrame, defaults: &FrameAttr
 		(i64::from(&GanFrame::Y) as i32, frame.params.y.or(defaults.y)),
 		(i64::from(&GanFrame::Time) as i32, frame.params.time.or(defaults.time)),
 		(i64::from(&GanFrame::Alpha) as i32, frame.params.alpha.or(defaults.alpha)),
-		(i64::from(&GanFrame::Other) as i32, frame.params.other.or(defaults.other)),
+		(i64::from(&GanFrame::Z) as i32, frame.params.z.or(defaults.z)),
 	] {
 		if let Some(v) = value {
 			oc.write_i32::<LittleEndian>(tag)?;
