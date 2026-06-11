@@ -32,45 +32,52 @@ use clap::Parser;
 	help_template = concat!(
 		"{name} {version}: {about}\n\n",
 		"\x1b[1;4mUsage:\x1b[0m {usage}\n\n",
-		"\x1b[1;4mOptions:\x1b[0m\n",
-		"{options}\n"),
+		"{all-args}\n"),
 	disable_help_flag = true,
 	disable_version_flag = true,
 )]
 pub struct Args {
+	// RlToml Information
 	#[arg(
 		long = "help",
 		help = "display this usage information",
+		help_heading = "Information",
 	)]
 	pub help: bool,
 
 	#[arg(
 		long = "version",
 		help = "display RlToml version information",
+		help_heading = "Information",
 	)]
 	pub version: bool,
 
 	#[arg(
 		long = "info",
 		help = "display detailed information about RlToml and its usage",
+		help_heading = "Information",
 	)]
 	pub info: bool,
 
+	// RlToml Options
 	#[arg(
 		short = 'v',
 		long = "verbose",
 		help = "show detailed information about what RlToml is doing",
+		help_heading = "Options",
 	)]
 	pub verbose: bool,
 
 	#[arg(
 		long = "uppercase",
-		help = "use uppercase hex digits (A-F) in error output",
+		help = "use uppercase hex digits (A-F) in hex dumps",
+		help_heading = "Options",
 	)]
 	pub uppercase: bool,
 	
 	#[arg(
 		value_name = "FILE/FILES",
+		help = "input file(s) to convert",
 	)]
 	pub files: Vec<String>,
 }
