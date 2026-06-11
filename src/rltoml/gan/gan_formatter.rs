@@ -148,7 +148,7 @@ pub fn gan_to_toml(path: &str) -> ParseResult<String> {
 }
 
 /// Formats a Kaitai validation error with context, expected/found values, and hex dump.
-pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool) -> String {
+pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool, uppercase: bool) -> String {
 	let kerr = match err {
 		ParseError::Kaitai(k) => k,
 		ParseError::KaitaiWithContext { err: k, .. } => k,
@@ -166,22 +166,26 @@ pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool) -> 
 			MagicSpec { label: "first GAN header", expected: 10_000, offset: 0, kind, src_path: src },
 			path,
 			verbose,
+			uppercase,
 		),
 		"/types/gan_header/seq/1" => error_formatter::format_magic(
 			MagicSpec { label: "second GAN header", expected: 10_000, offset: 4, kind, src_path: src },
 			path,
 			verbose,
+			uppercase,
 		),
 		"/types/gan_header/seq/2" => error_formatter::format_magic(
 			MagicSpec { label: "third GAN header", expected: 10_100, offset: 8, kind, src_path: src },
 			path,
 			verbose,
+			uppercase,
 		),
 		"/types/gan_data_section/seq/0" => match compute_data_section_offset(path) {
 			Some(off) => error_formatter::format_magic(
 				MagicSpec { label: "data section start marker", expected: 20_000, offset: off, kind, src_path: src },
 				path,
 				verbose,
+				uppercase,
 			),
 			None => "invalid data section start marker (expected 20000)".to_string(),
 		},
@@ -190,6 +194,7 @@ pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool) -> 
 				MagicSpec { label: "animation set start marker", expected: 30_000, offset: off, kind, src_path: src },
 				path,
 				verbose,
+				uppercase,
 			),
 			None => "invalid animation set start marker (expected 30000)".to_string(),
 		},
@@ -197,6 +202,7 @@ pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool) -> 
 			AnyOfSpec { label: "frame entry tag", any_of: &valid_frame_tags(), kind, src_path: src, got, offset },
 			path,
 			verbose,
+			uppercase,
 		),
 		_ => "parse failed at an unexpected location".to_string(),
 	}

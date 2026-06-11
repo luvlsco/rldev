@@ -62,6 +62,12 @@ pub struct Args {
 		help = "show detailed information about what RlToml is doing",
 	)]
 	pub verbose: bool,
+
+	#[arg(
+		long = "uppercase",
+		help = "use uppercase hex digits (A-F) in error output",
+	)]
+	pub uppercase: bool,
 	
 	#[arg(
 		value_name = "FILE/FILES",

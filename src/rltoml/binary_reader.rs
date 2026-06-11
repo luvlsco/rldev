@@ -132,26 +132,46 @@ pub fn read_u4_le_full(path: &str, offset: usize) -> KResult<(i64, [u8; 4])> {
 }
 
 /// Formats bytes as space-separated hex values.
-pub fn format_bytes_hex(bytes: &[u8]) -> String {
-	bytes
-		.iter()
-		.map(|b| format!("{:02X}", b))
-		.collect::<Vec<_>>()
-		.join(" ")
+pub fn format_bytes_hex(bytes: &[u8], uppercase: bool) -> String {
+	if !uppercase {
+		bytes
+			.iter()
+			.map(|b| format!("{:02x}", b))
+			.collect::<Vec<_>>()
+			.join(" ")
+	} else {
+		bytes
+			.iter()
+			.map(|b| format!("{:02X}", b))
+			.collect::<Vec<_>>()
+			.join(" ")
+	}
+}
+
+/// Formats a u32 as hex with optional uppercase ("0x1a2b" / "0x1A2B").
+pub fn format_hex_u32(value: u32, uppercase: bool) -> String {
+	if !uppercase {
+		format!("0x{:x}", value)
+	} else {
+		format!("0x{:X}", value)
+	}
+}
+
+/// Formats a u32 as zero-padded hex ("0x0000abcd" / "0x0000ABCD").
+pub fn format_hex_u32_padded(value: u32, width: usize, uppercase: bool) -> String {
+	if !uppercase {
+		format!("0x{:0width$x}", value, width = width)
+	} else {
+		format!("0x{:0width$X}", value, width = width)
+	}
 }
 
 /// Formats a hex dump line with a caret under the field at `field_offset`.
-pub fn hex_dump_at(
-	path: &str,
-	dump_offset: usize,
-	dump_len: usize,
-	field_offset: usize,
-	field_len: usize,
-) -> KResult<(String, String)> {
+pub fn hex_dump_at(path: &str, dump_offset: usize, dump_len: usize, field_offset: usize, field_len: usize, uppercase: bool) -> KResult<(String, String)> {
 	let reader = open(path)?;
 	reader.seek(dump_offset)?;
 	let buf = reader.read_bytes(dump_len)?;
-	let dump_line = format!("{:08X} | {}", dump_offset, format_bytes_hex(&buf));
+	let dump_line = format!("{} | {}", format_hex_u32_padded(dump_offset as u32, 8, uppercase), format_bytes_hex(&buf, uppercase));
 	let caret_col = 11 + (field_offset - dump_offset) * 3;
 	let caret_len = field_len * 3 - 1;
 	let caret_line = format!("{:width$}{}", "", "^".repeat(caret_len), width = caret_col);

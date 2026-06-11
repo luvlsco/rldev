@@ -75,7 +75,7 @@ fn main() {
 	match conversion {
 		"TOML" => {
 			let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
-				eprint_line(format!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_to_toml_error(&err, file, args.verbose)));
+				eprint_line(format!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_to_toml_error(&err, file, args.verbose, args.uppercase)));
 				std::process::exit(1);
 			});
 			if let Err(err) = std::fs::write(&out_path, toml) {

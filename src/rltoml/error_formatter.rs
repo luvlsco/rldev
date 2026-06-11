@@ -78,25 +78,25 @@ impl From<std::io::Error> for ParseError {
 }
 
 /// Formats a value as `<decimal> (0x<hex>, bytes: <hex bytes>)`.
-pub fn format_value(value: i32, bytes: &[u8]) -> String {
-	format!("{} (0x{:X}, bytes: {})", value, value, binary_reader::format_bytes_hex(bytes))
+pub fn format_value(value: i32, bytes: &[u8], uppercase: bool) -> String {
+	format!("{} ({}, bytes: {})", value, binary_reader::format_hex_u32(value as u32, uppercase), binary_reader::format_bytes_hex(bytes, uppercase))
 }
 
 /// Formats a 16-byte hex dump at `offset` with a caret under `field_len` bytes.
-pub fn format_dump(path: &str, offset: usize, field_len: usize) -> Option<String> {
+pub fn format_dump(path: &str, offset: usize, field_len: usize, uppercase: bool) -> Option<String> {
 	let dump_start = offset & !0xF;
 	let dump_len = 16usize;
 	let size = binary_reader::file_size(path).ok()?;
 	let header = format!(
-		"Dump ({} of {} bytes shown, starting at offset 0x{:08X}, error at offset 0x{:08X}):",
-		dump_len, size, dump_start, offset
+		"Dump ({} of {} bytes shown, starting at offset {}, error at offset {}):",
+		dump_len, size, binary_reader::format_hex_u32_padded(dump_start as u32, 8, uppercase), binary_reader::format_hex_u32_padded(offset as u32, 8, uppercase)
 	);
-	let (line, caret) = binary_reader::hex_dump_at(path, dump_start, dump_len, offset, field_len).ok()?;
+	let (line, caret) = binary_reader::hex_dump_at(path, dump_start, dump_len, offset, field_len, uppercase).ok()?;
 	Some(format!("{}\n{}\n{}", header, line, caret))
 }
 
 /// Formats a single-value magic-number validation error with hex dump.
-pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
+pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool, uppercase: bool) -> String {
 	let expected_bytes = le_bytes(spec.expected);
 	let (got, got_bytes) = match binary_reader::read_u4_le_full(path, spec.offset) {
 		Ok((v, b)) => (v as i32, b),
@@ -109,34 +109,39 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool) -> String {
 		return format!("invalid value at {}: found {} (expected {}).", spec.label, got, spec.expected);
 	}
 
-	let mut out = format!(
+	let out = format!(
 		indoc::indoc! {"\
 			invalid value at {label}:
-			 Expected: {expected} (0x{expected:X}, bytes: {exp_hex})
-			 Found: {got} (0x{got:X}, bytes: {got_hex})
+			 Expected: {expected} ({exp_hex}, bytes: {exp_hex_bytes})
+			 Found: {got} ({got_hex}, bytes: {got_hex_bytes})
 			 Kaitai Error: {kind:?} @ {src}
-			 Hex offset: 0x{offset:08X} (decimal: {offset})
+			 Hex offset: {} (decimal: {offset})
 		"},
+		binary_reader::format_hex_u32_padded(spec.offset as u32, 8, uppercase),
 		label = spec.label,
 		expected = spec.expected,
 		got = got,
 		kind = spec.kind,
 		src = spec.src_path,
 		offset = spec.offset,
-		exp_hex = binary_reader::format_bytes_hex(&expected_bytes),
-		got_hex = binary_reader::format_bytes_hex(&got_bytes),
+		exp_hex = binary_reader::format_hex_u32(spec.expected as u32, uppercase),
+		exp_hex_bytes = binary_reader::format_bytes_hex(&expected_bytes, uppercase),
+		got_hex = binary_reader::format_hex_u32(got as u32, uppercase),
+		got_hex_bytes = binary_reader::format_bytes_hex(&got_bytes, uppercase),
 	);
 
-	if let Some(dump) = format_dump(path, spec.offset, 4) {
-		out.push('\n');
-		out.push_str(&dump);
+	if let Some(dump) = format_dump(path, spec.offset, 4, uppercase) {
+		let mut result = out;
+		result.push('\n');
+		result.push_str(&dump);
+		result
+	} else {
+		out
 	}
-
-	out
 }
 
 /// Formats an "any of" enum validation error with hex dump.
-pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool) -> String {
+pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool, uppercase: bool) -> String {
 	if !verbose {
 		let any_list_short: Vec<String> = spec.any_of.iter().map(|v| v.to_string()).collect();
 		let list_str = any_list_short.join(", ");
@@ -149,19 +154,19 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool) -> String {
 	let mut out = format!("invalid value at {}:\n", spec.label);
 	out.push_str("Expected any of:\n");
 	for v in spec.any_of {
-		out.push_str(&format!(" - {}\n", format_value(*v, &le_bytes(*v))));
+		out.push_str(&format!(" - {}\n", format_value(*v, &le_bytes(*v), uppercase)));
 	}
 
 	if let Some((g, bytes)) = &spec.got {
 		out.push('\n');
-		out.push_str(&format!("Found: {}\n", format_value(*g, bytes)));
+		out.push_str(&format!("Found: {}\n", format_value(*g, bytes, uppercase)));
 	}
 
 	out.push_str(&format!("Kaitai Error: {:?} @ {}\n", spec.kind, spec.src_path));
 
 	if let Some(offset) = spec.offset {
-		out.push_str(&format!("Hex offset: 0x{:08X} (decimal: {})\n", offset, offset));
-		if let Some(dump) = format_dump(path, offset, 4) {
+		out.push_str(&format!("Hex offset: {} (decimal: {})\n", binary_reader::format_hex_u32_padded(offset as u32, 8, uppercase), offset));
+		if let Some(dump) = format_dump(path, offset, 4, uppercase) {
 			out.push('\n');
 			out.push_str(&dump);
 		}
