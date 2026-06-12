@@ -172,7 +172,7 @@ pub fn hex_dump_at(path: &str, dump_offset: usize, dump_len: usize, field_offset
 	reader.seek(dump_offset)?;
 	let buf = reader.read_bytes(dump_len)?;
 	let dump_line = format!("{} | {}", format_hex_u32_padded(dump_offset as u32, 8, uppercase), format_bytes_hex(&buf, uppercase));
-	let caret_col = 11 + (field_offset - dump_offset) * 3;
+	let caret_col = 13 + (field_offset - dump_offset) * 3;
 	let caret_len = field_len * 3 - 1;
 	let caret_line = format!("{:width$}{}", "", "^".repeat(caret_len), width = caret_col);
 	Ok((dump_line, caret_line))

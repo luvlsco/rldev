@@ -25,7 +25,53 @@ mod toml_formatter;
 mod binary_reader;
 mod error_formatter;
 
-use rldev::common::cli::{get_file_name, print_line, eprint_line};
+use rldev::common::cli::{print_line, eprint_line};
+use rldev::common::filesystem::get_file_name;
+use rldev::common::options::OutputRequest;
+
+fn get_file_type(path: &std::path::Path) -> Option<(&str, std::path::PathBuf)> {
+	let file_name = path.file_name()?.to_str()?;
+	if file_name.ends_with(".gan.toml") {
+		Some(("TOML", path.with_extension("").with_extension("gan")))
+	} else if file_name.ends_with(".gan") {
+		Some(("GAN", path.with_extension("gan.toml")))
+	} else {
+		None
+	}
+}
+
+fn derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
+	let file_name = input.file_name().and_then(|n| n.to_str()).unwrap_or("");
+	if file_name.ends_with(".gan.toml") {
+		input.with_extension("").with_extension("gan")
+	} else if file_name.ends_with(".gan") {
+		input.with_extension("gan.toml")
+	} else {
+		unreachable!("Unknown file type")
+	}
+}
+
+fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, uppercase: bool) {
+	let path = std::path::Path::new(file);
+	let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+	if file_name.ends_with(".gan") {
+		let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
+			eprint_line(format!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_to_toml_error(&err, file, verbose, uppercase)));
+			std::process::exit(1);
+		});
+		if let Err(err) = std::fs::write(out_path, toml) {
+			eprint_line(format!("Error writing {}: {}", out_path.display(), err));
+			std::process::exit(1);
+		}
+	} else if file_name.ends_with(".gan.toml") {
+		gan::toml_to_gan(file, out_path.to_str().unwrap()).unwrap_or_else(|err| {
+			eprint_line(format!("Failed to convert \"{}\" to GAN, {}", get_file_name(file), gan::format_toml_to_gan_error(&err, verbose)));
+			std::process::exit(1);
+		});
+	}
+	print_line(format!("success: {}", out_path.display()));
+}
 
 fn main() {
 	let raw_args: Vec<_> = std::env::args_os().collect();
@@ -54,43 +100,28 @@ fn main() {
 		std::process::exit(0);
 	}
 
-	let file = &args.files[0];
-	let path = std::path::Path::new(file);
+	let output = args.output.as_deref();
+	let verbose = args.verbose;
+	let uppercase = args.uppercase;
 
-	let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-	let is_gan_toml = file_name.ends_with(".gan.toml");
+	let inputs: Vec<std::path::PathBuf> = args.files.iter().map(std::path::PathBuf::from).collect();
+	let out_paths = rldev::common::options::resolve_output_path(OutputRequest {
+		output,
+		outdir: None,
+		inputs: &inputs,
+		derive: derive_output_path,
+	})
+	.unwrap_or_else(|err| {
+		eprint_line(format!("output: {}", err));
+		std::process::exit(1);
+	});
 
-	let (out_path, conversion): (std::path::PathBuf, &str) =
-		if is_gan_toml {
-			let gan_path = path.with_extension("").with_extension("gan");
-			(gan_path, "GAN binary")
-		} else if file_name.ends_with(".gan") {
-			let toml_path = path.with_extension("gan.toml");
-			(toml_path, "TOML")
-		} else {
+	for (file, out_path) in args.files.iter().zip(out_paths.iter()) {
+		let path = std::path::Path::new(file);
+		if get_file_type(path).is_none() {
 			eprint_line(format!("Unknown file type: {}", file));
 			std::process::exit(1);
-		};
-
-	match conversion {
-		"TOML" => {
-			let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
-				eprint_line(format!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_to_toml_error(&err, file, args.verbose, args.uppercase)));
-				std::process::exit(1);
-			});
-			if let Err(err) = std::fs::write(&out_path, toml) {
-				eprint_line(format!("Error writing {}: {}", out_path.display(), err));
-				std::process::exit(1);
-			}
-			print_line(format!("success: {}", out_path.display()));
 		}
-		"GAN binary" => {
-			gan::toml_to_gan(file, out_path.to_str().unwrap()).unwrap_or_else(|err| {
-				eprint_line(format!("Failed to convert \"{}\" to GAN, {}", get_file_name(file), gan::format_toml_to_gan_error(&err, args.verbose)));
-				std::process::exit(1);
-			});
-			print_line(format!("success: {}", out_path.display()));
-		}
-		_ => unreachable!(),
+		convert_single(file, out_path, verbose, uppercase);
 	}
 }

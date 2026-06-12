@@ -71,10 +71,23 @@ pub struct Args {
 	#[arg(
 		long = "uppercase",
 		help = "use uppercase hex digits (A-F) in hex dumps",
+		requires = "verbose",
 		help_heading = "Options",
 	)]
 	pub uppercase: bool,
-	
+
+	#[arg(
+		short = 'o',
+		long = "output",
+		value_name = "NAME",
+		help = concat!(
+			"if only one file is being converted, sets the output\n",
+			"filename, otherwise names the directory to place\n",
+			"outputs in"),
+		help_heading = "Options",
+	)]
+	pub output: Option<String>,
+
 	#[arg(
 		value_name = "FILE/FILES",
 		help = "input file(s) to convert",
