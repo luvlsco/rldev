@@ -69,7 +69,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 			std::process::exit(1);
 		});
 	}
-	println!("success: {}", out_path.display());
+	println!("Successfully converted: {}", out_path.display());
 }
 
 fn main() {
@@ -99,11 +99,31 @@ fn main() {
 		std::process::exit(0);
 	}
 
-	let output = args.output.as_deref();
 	let verbose = args.verbose;
 	let uppercase = args.uppercase;
 
 	let inputs: Vec<std::path::PathBuf> = args.files.iter().map(std::path::PathBuf::from).collect();
+
+	// Append target extension to single-file conversion
+	let output: Option<String> = if inputs.len() == 1 {
+		args.output.map(|output_name| {
+			let converted_output_suffix = inputs[0]
+				.file_name()
+				.and_then(|n| n.to_str())
+				.and_then(|file_name|
+					if file_name.ends_with(".gan.toml") { Some(".gan") }
+					else if file_name.ends_with(".gan") { Some(".gan.toml") }
+					else { None }
+				);
+			converted_output_suffix
+				.filter(|suffix| !output_name.ends_with(suffix))
+				.map_or(output_name.clone(), |suffix| format!("{}{}", output_name, suffix))
+		})
+	} else {
+		args.output
+	};
+
+	let output = output.as_deref();
 	let out_paths = rldev::common::options::resolve_output_path(OutputRequest {
 		output,
 		outdir: None,
