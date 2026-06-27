@@ -134,10 +134,7 @@ fn main() {
 		inputs: &inputs,
 		derive: derive_output_path,
 	})
-	.unwrap_or_else(|err| {
-		eprintln!("output: {}", err);
-		std::process::exit(1);
-	});
+	.unwrap();
 
 	for (file, out_path) in args.files.iter().zip(out_paths.iter()) {
 		convert_single(file, out_path, verbose, uppercase);
