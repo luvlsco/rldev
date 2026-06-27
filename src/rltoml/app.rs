@@ -39,13 +39,6 @@ use clap::Parser;
 pub struct Args {
 	// RlToml Information
 	#[arg(
-		long = "help",
-		help = "display this usage information",
-		help_heading = "Information",
-	)]
-	pub help: bool,
-
-	#[arg(
 		long = "version",
 		help = "display RlToml version information",
 		help_heading = "Information",
@@ -58,6 +51,13 @@ pub struct Args {
 		help_heading = "Information",
 	)]
 	pub info: bool,
+
+	#[arg(
+		long = "help",
+		help = "display this usage information",
+		help_heading = "Information",
+	)]
+	pub help: bool,
 
 	// RlToml Options
 	#[arg(

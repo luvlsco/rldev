@@ -76,15 +76,6 @@ fn main() {
 	let raw_args: Vec<_> = std::env::args_os().collect();
 	let args = app::parse_args();
 
-	// Arg: --help
-	// Print help if "--help" is called explicitly
-	// or if no other arguments or files are provided
-	if args.help || raw_args.len() == 1 || args.files.is_empty() {
-		let cmd = <app::Args as clap::CommandFactory>::command();
-		rldev::common::cli::print_help(cmd);
-		std::process::exit(0);
-	}
-
 	// Arg: --version
 	// Print RlToml version
 	if args.version {
@@ -99,10 +90,27 @@ fn main() {
 		std::process::exit(0);
 	}
 
+	// Arg: --help
+	// Print help if "--help" is called explicitly
+	// or if no other arguments or files are provided
+	if args.help || raw_args.len() == 1 || args.files.is_empty() {
+		let cmd = <app::Args as clap::CommandFactory>::command();
+		rldev::common::cli::print_help(cmd);
+		std::process::exit(0);
+	}
+
 	let verbose = args.verbose;
 	let uppercase = args.uppercase;
 
 	let inputs: Vec<std::path::PathBuf> = args.files.iter().map(std::path::PathBuf::from).collect();
+
+	// Validate file types before derive_output_path sees unknown extensions
+	for path in &inputs {
+		if get_file_type(path).is_none() {
+			eprintln!("Unknown file type: {}", path.display());
+			std::process::exit(1);
+		}
+	}
 
 	// Append target extension to single-file conversion
 	let output: Option<String> = if inputs.len() == 1 {
@@ -136,11 +144,6 @@ fn main() {
 	});
 
 	for (file, out_path) in args.files.iter().zip(out_paths.iter()) {
-		let path = std::path::Path::new(file);
-		if get_file_type(path).is_none() {
-			eprintln!("Unknown file type: {}", file);
-			std::process::exit(1);
-		}
 		convert_single(file, out_path, verbose, uppercase);
 	}
 	println!();
