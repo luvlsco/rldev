@@ -76,17 +76,13 @@ fn main() {
 	let raw_args: Vec<_> = std::env::args_os().collect();
 	let args = app::parse_args();
 
-	// Arg: --version
-	// Print RlToml version
 	if args.version {
-		println!("RlToml {} - Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION"));
+		app::Args::print_version();
 		std::process::exit(0);
 	}
 
-	// Arg: --info
-	// Print detailed information about RlToml and its usage
 	if args.info {
-		println!("RlToml {}: Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION"));
+		app::Args::print_info();
 		std::process::exit(0);
 	}
 

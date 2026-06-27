@@ -99,3 +99,29 @@ pub struct Args {
 pub fn parse_args() -> Args {
 	Args::parse()
 }
+
+impl Args {
+	/// Prints version number and latest changelog entry.
+	pub fn print_version() {
+		indoc::printdoc! {"
+			\x1b[30;107m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
+
+			Latest changes (1.0.0 - 2026-06-27):
+			  First release.
+			  Added detailed hex dump to verbose mode.
+			  Added \"-u / --uppercase\" option for uppercase hex digits (default: lowercase).
+
+		", rldev_version = env!("CARGO_PKG_VERSION")}
+	}
+
+	/// Prints program description and supported features.
+	pub fn print_info() {
+		indoc::printdoc! {"
+			\x1b[30;107m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
+
+			Based on RlXml, originally developed in OCaml by Haeleth (2006).
+			Supports .gan to .gan.toml bidirectional conversion.
+
+		", rldev_version = env!("CARGO_PKG_VERSION")}
+	}
+}
