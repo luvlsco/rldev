@@ -108,13 +108,18 @@ pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
 }
 
 /// Converts a TOML file to a GAN binary file.
-pub fn toml_to_gan(toml_path: &str, gan_path: &str) -> Result<(), GanWriteError> {
+pub fn toml_to_gan(toml_path: &str, gan_path: &str, verbose: bool) -> Result<(), GanWriteError> {
 	let content = std::fs::read_to_string(toml_path)?;
 	let doc: toml_edit::Document<std::string::String> = content.parse()?;
 	let gan = parse_toml_gan(&doc)?;
+
+	if verbose {
+		println!("Reading and parsing TOML");
+	}
+
 	let file = File::create(gan_path)?;
 	let mut oc = BufWriter::new(file);
-	write_gan(&mut oc, &gan)?;
+	write_gan(&mut oc, &gan, verbose)?;
 	oc.flush()?;
 	Ok(())
 }
@@ -230,7 +235,10 @@ fn write_set(oc: &mut BufWriter<File>, set: &TomlSet) -> Result<(), GanWriteErro
 }
 
 /// Writes the complete GAN file: header, bitmap name, data section with all sets.
-fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan) -> Result<(), GanWriteError> {
+fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan, verbose: bool) -> Result<(), GanWriteError> {
+	if verbose {
+		println!("Writing GAN header");
+	}
 	oc.write_i32::<LittleEndian>(10_000)?;
 	oc.write_i32::<LittleEndian>(10_000)?;
 	oc.write_i32::<LittleEndian>(10_100)?;
@@ -240,6 +248,9 @@ fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan) -> Result<(), GanWriteErro
 	oc.write_u8(0)?;
 	oc.write_i32::<LittleEndian>(20_000)?;
 	oc.write_u32::<LittleEndian>(gan.sets.len() as u32)?;
+	if verbose {
+		println!("Writing GAN set data");
+	}
 	for set in &gan.sets {
 		write_set(oc, set)?;
 	}

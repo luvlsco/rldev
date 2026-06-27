@@ -114,10 +114,16 @@ pub fn parse_gan(path: &str) -> ParseResult<OptRc<GanParser>> {
 }
 
 /// Converts a GAN animation file to TOML format.
-pub fn gan_to_toml(path: &str) -> ParseResult<String> {
+pub fn gan_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
+	if verbose {
+		println!("Reading GAN header");
+	}
 	let gan = parse_gan(path)?;
 	let header = gan.gan_header().get();
 	let data_section = gan.gan_data_section().get();
+	if verbose {
+		println!("Reading GAN set data");
+	}
 
 	let mut lines = vec![
 		"[gan]".to_string(),
@@ -142,6 +148,10 @@ pub fn gan_to_toml(path: &str) -> ParseResult<String> {
 
 		lines.push("]".to_string());
 		lines.push(String::new());
+	}
+
+	if verbose {
+		println!("Generating TOML");
 	}
 
 	Ok(lines.join("\n"))

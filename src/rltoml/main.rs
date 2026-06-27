@@ -25,7 +25,6 @@ mod toml_formatter;
 mod binary_reader;
 mod error_formatter;
 
-use rldev::common::cli::{print_line, eprint_line};
 use rldev::common::filesystem::get_file_name;
 use rldev::common::options::OutputRequest;
 
@@ -56,21 +55,21 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 	let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
 	if file_name.ends_with(".gan") {
-		let toml = gan::gan_to_toml(file).unwrap_or_else(|err| {
-			eprint_line(format!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_to_toml_error(&err, file, verbose, uppercase)));
+		let toml = gan::gan_to_toml(file, verbose).unwrap_or_else(|err| {
+			eprintln!("Failed to convert \"{}\" to TOML, {}", get_file_name(file), gan::format_gan_to_toml_error(&err, file, verbose, uppercase));
 			std::process::exit(1);
 		});
 		if let Err(err) = std::fs::write(out_path, toml) {
-			eprint_line(format!("Error writing {}: {}", out_path.display(), err));
+			eprintln!("Error writing {}: {}", out_path.display(), err);
 			std::process::exit(1);
 		}
 	} else if file_name.ends_with(".gan.toml") {
-		gan::toml_to_gan(file, out_path.to_str().unwrap()).unwrap_or_else(|err| {
-			eprint_line(format!("Failed to convert \"{}\" to GAN, {}", get_file_name(file), gan::format_toml_to_gan_error(&err, verbose)));
+		gan::toml_to_gan(file, out_path.to_str().unwrap(), verbose).unwrap_or_else(|err| {
+			eprintln!("Failed to convert \"{}\" to GAN, {}", get_file_name(file), gan::format_toml_to_gan_error(&err, verbose));
 			std::process::exit(1);
 		});
 	}
-	print_line(format!("success: {}", out_path.display()));
+	println!("success: {}", out_path.display());
 }
 
 fn main() {
@@ -89,14 +88,14 @@ fn main() {
 	// Arg: --version
 	// Print RlToml version
 	if args.version {
-		print_line(format!("RlToml {} - Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
+		println!("RlToml {} - Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION"));
 		std::process::exit(0);
 	}
 
 	// Arg: --info
 	// Print detailed information about RlToml and its usage
 	if args.info {
-		print_line(format!("RlToml {}: Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION")));
+		println!("RlToml {}: Converter between RealLive auxiliary data formats and TOML", env!("CARGO_PKG_VERSION"));
 		std::process::exit(0);
 	}
 
@@ -112,16 +111,17 @@ fn main() {
 		derive: derive_output_path,
 	})
 	.unwrap_or_else(|err| {
-		eprint_line(format!("output: {}", err));
+		eprintln!("output: {}", err);
 		std::process::exit(1);
 	});
 
 	for (file, out_path) in args.files.iter().zip(out_paths.iter()) {
 		let path = std::path::Path::new(file);
 		if get_file_type(path).is_none() {
-			eprint_line(format!("Unknown file type: {}", file));
+			eprintln!("Unknown file type: {}", file);
 			std::process::exit(1);
 		}
 		convert_single(file, out_path, verbose, uppercase);
 	}
+	println!();
 }
