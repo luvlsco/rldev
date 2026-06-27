@@ -164,7 +164,7 @@ pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool, upp
 		ParseError::KaitaiWithContext { err: k, .. } => k,
 	};
 	let KError::ValidationFailed(validation) = kerr else {
-		return format!("{:?}", err);
+		return error_formatter::format_kaitai_error(kerr);
 	};
 	let src = validation.src_path.as_str();
 	let kind = &validation.kind;

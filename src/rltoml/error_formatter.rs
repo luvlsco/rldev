@@ -179,3 +179,21 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool, uppercase: bool
 fn le_bytes(value: i32) -> [u8; 4] {
 	(value as u32).to_le_bytes()
 }
+
+/// Translates a raw Kaitai Error into a human-readable message.
+pub fn format_kaitai_error(err: &kaitai::KError) -> String {
+	use kaitai::KError;
+	match err {
+		KError::IoError { msg } => format!("cannot read file: {}.", msg.trim_end_matches('.')),
+		KError::Eof { requested, available } => format!("file is truncated (expected {} bytes, found {}).", requested, available),
+		KError::NoTerminatorFound => "expected string terminator not found.".to_string(),
+		KError::EmptyIterator => "expected data but found none.".to_string(),
+		KError::UnknownEncoding { name } => format!("unknown encoding: {}.", name),
+		KError::ReadBitsTooLarge { requested } => format!("read bits too large ({}).", requested),
+		KError::MissingRoot | KError::MissingParent => "internal error: missing reference.".to_string(),
+		KError::BytesDecodingError { msg } => format!("bytes decoding error: {}.", msg.trim_end_matches('.')),
+		KError::CastError => "internal cast error.".to_string(),
+		KError::UndecidedEndianness { .. } => "internal error: undecided endianness.".to_string(),
+		_ => "an unknown error occurred.".to_string(),
+	}
+}
