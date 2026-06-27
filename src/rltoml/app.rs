@@ -69,6 +69,7 @@ pub struct Args {
 	pub verbose: bool,
 
 	#[arg(
+		short = 'u',
 		long = "uppercase",
 		help = "use uppercase hex digits (A-F) in hex dumps",
 		requires = "verbose",
@@ -106,7 +107,7 @@ impl Args {
 		indoc::printdoc! {"
 			\x1b[30;107m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
 
-			Latest changes (1.0.0 - 2026-06-27):
+			Latest changes for RlToml (1.0.0 - 2026-06-27):
 			  First release.
 			  Added detailed hex dump to verbose mode.
 			  Added \"-u / --uppercase\" option for uppercase hex digits (default: lowercase).
@@ -118,9 +119,10 @@ impl Args {
 	pub fn print_info() {
 		indoc::printdoc! {"
 			\x1b[30;107m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
-
 			Based on RlXml, originally developed in OCaml by Haeleth (2006).
-			Supports .gan to .gan.toml bidirectional conversion.
+
+			\x1b[1;4mSupported formats:\x1b[0m
+			      \x1b[1m.gan\x1b[0m: bidirectional conversion with \x1b[1m.gan.toml\x1b[0m
 
 		", rldev_version = env!("CARGO_PKG_VERSION")}
 	}
