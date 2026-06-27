@@ -31,7 +31,7 @@ use clap::Parser;
 		"Use \x1b[1m--info\x1b[0m to show more information about this program"),
 	help_template = concat!(
 		"{name} {version}: {about}\n\n",
-		"\x1b[1;4mUsage:\x1b[0m {usage}\n\n",
+		"{usage-heading} {usage}\n\n",
 		"{all-args}\n"),
 	disable_help_flag = true,
 	disable_version_flag = true,

@@ -33,7 +33,7 @@ enums:
     30102: y
     30103: time
     30104: alpha
-    30105: z # Parameter not supported by the system (システムが未対応のパラメータです)
+    30105: z # From RealLiveMax SDK: "Parameter not supported by the system (システムが未対応のパラメータです)"
     999999: frame_end
 
 seq:
