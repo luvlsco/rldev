@@ -184,7 +184,7 @@ fn le_bytes(value: i32) -> [u8; 4] {
 pub fn format_kaitai_error(err: &kaitai::KError) -> String {
 	use kaitai::KError;
 	match err {
-		KError::IoError { msg } => format!("cannot read file: {}.", msg.trim_end_matches('.')),
+		KError::IoError { msg } => format!("cannot read file: {}.", msg),
 		KError::Eof { requested, available } => format!("file is truncated (expected {} bytes, found {}).", requested, available),
 		KError::NoTerminatorFound => "expected string terminator not found.".to_string(),
 		KError::EmptyIterator => "expected data but found none.".to_string(),
@@ -195,5 +195,25 @@ pub fn format_kaitai_error(err: &kaitai::KError) -> String {
 		KError::CastError => "internal cast error.".to_string(),
 		KError::UndecidedEndianness { .. } => "internal error: undecided endianness.".to_string(),
 		_ => "an unknown error occurred.".to_string(),
+	}
+}
+
+/// Formats a `std::io::Error` using the OS error code for translation.
+pub fn format_io_error(err: &std::io::Error) -> String {
+	if let Some(code) = err.raw_os_error() {
+		if let Some(english) = translate_os_error_code(code) {
+			return format!("{}. (os error {})", english, code);
+		}
+	}
+	err.to_string()
+}
+
+fn translate_os_error_code(code: i32) -> Option<&'static str> {
+	match code {
+		2 => Some("file not found"),
+		3 => Some("path not found"),
+		5 => Some("access denied"),
+		32 => Some("file is in use by another process"),
+		_ => None,
 	}
 }

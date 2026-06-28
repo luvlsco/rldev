@@ -60,7 +60,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 			std::process::exit(1);
 		});
 		if let Err(err) = std::fs::write(out_path, toml) {
-			eprintln!("Error writing {}: {}", out_path.display(), err);
+			eprintln!("Error writing {}: {}", out_path.display(), error_formatter::format_io_error(&err));
 			std::process::exit(1);
 		}
 	} else if file_name.ends_with(".gan.toml") {
