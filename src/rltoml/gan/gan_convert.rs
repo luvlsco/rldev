@@ -90,13 +90,7 @@ pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
 	}
 
 	if !last_line.is_empty() {
-		let first = last_line.chars().next().map(|c| c.to_uppercase().to_string()).unwrap_or_default();
-		let rest = &last_line[last_line.char_indices().next().unwrap().0 + first.len()..];
-		let fixed = if last_line.ends_with('.') {
-			format!("{}{}", first, rest)
-		} else {
-			format!("{}{}.", first, rest)
-		};
+		let fixed = rldev::common::cli::format_output(last_line);
 		result = result.trim_end_matches(last_line).to_string();
 		if !result.is_empty() && !result.ends_with('\n') {
 			result.push('\n');

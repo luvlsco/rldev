@@ -19,7 +19,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use clap::Parser;
+use clap::{Parser, CommandFactory};
 
 /// Command-line arguments/options for RlToml.
 #[derive(Parser, Debug)]
@@ -36,6 +36,7 @@ use clap::Parser;
 	disable_help_flag = true,
 	disable_version_flag = true,
 )]
+
 pub struct Args {
 	// RlToml Information
 	#[arg(
@@ -97,8 +98,18 @@ pub struct Args {
 }
 
 /// Parses command-line arguments using Clap.
+/// Error messages are rendered monochrome to avoid clap's default ANSI coloring.
 pub fn parse_args() -> Args {
-	Args::parse()
+	match Args::try_parse() {
+		Ok(args) => args,
+		Err(e) => {
+			let mut cmd = <Args as CommandFactory>::command()
+				.color(clap::ColorChoice::Never);
+			let formatted = e.format(&mut cmd);
+			eprintln!("{}", rldev::common::cli::format_output(&formatted.to_string()));
+			std::process::exit(formatted.exit_code());
+		}
+	}
 }
 
 impl Args {
