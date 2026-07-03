@@ -24,7 +24,7 @@ use clap::Parser;
 /// Command-line arguments/options for RlToml.
 #[derive(Parser, Debug)]
 #[command(
-	name = "\x1b[30;107m[ RlToml",
+	name = "\x1b[1m[ RlToml",
 	version = concat!(env!("CARGO_PKG_VERSION"), " ]\x1b[0m"),
 	about = concat!(
 		"Converter between RealLive auxiliary data formats and TOML\n",
@@ -105,7 +105,7 @@ impl Args {
 	/// Prints version number and latest changelog entry.
 	pub fn print_version() {
 		indoc::printdoc! {"
-			\x1b[30;107m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
+			\x1b[1m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
 
 			Latest changes for RlToml (1.0.0 - 2026-06-27):
 			  First release.
@@ -118,7 +118,7 @@ impl Args {
 	/// Prints program description and supported features.
 	pub fn print_info() {
 		indoc::printdoc! {"
-			\x1b[30;107m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
+			\x1b[1m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
 			Based on RlXml, originally developed in OCaml by Haeleth (2006).
 
 			\x1b[1;4mSupported formats:\x1b[0m
