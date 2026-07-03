@@ -172,7 +172,7 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool, uppercase: bool
 		}
 	}
 
-	out
+	out.trim_end().to_string()
 }
 
 /// Converts an `i32` to its little-endian byte representation.

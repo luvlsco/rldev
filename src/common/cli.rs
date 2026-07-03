@@ -1,5 +1,11 @@
 use clap::Command;
 
+/// Prints a trailing blank line then exits, keeping terminal output clean.
+pub fn quit(code: i32) -> ! {
+	eprintln!();
+	std::process::exit(code);
+}
+
 /// Prints the help message for the calling binary, used when parsing empty args.
 pub fn print_help(cmd: Command) {
 	let bin_name = crate::common::filesystem::get_bin_name(&cmd);
@@ -7,8 +13,6 @@ pub fn print_help(cmd: Command) {
 	cmd.bin_name(bin_name)
 		.print_help()
 		.unwrap();
-
-	println!();
 }
 
 /// Capitalizes the first character and ensures the line ends with a period.

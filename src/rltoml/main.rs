@@ -55,18 +55,18 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 	let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
 	if file_name.ends_with(".gan") {
-		let toml = gan::gan_to_toml(file, verbose).unwrap_or_else(|err| {
+		let toml = gan::gan_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
 			eprintln!("Failed to convert \"{}\" to \"{}\" (TOML): {}", get_file_name(file), out_path.display(), gan::format_gan_to_toml_error(&err, file, verbose, uppercase));
-			std::process::exit(1);
+			rldev::common::cli::quit(1);
 		});
 		if let Err(err) = std::fs::write(out_path, toml) {
 			eprintln!("Error writing {}: {}", out_path.display(), error_formatter::format_io_error(&err));
-			std::process::exit(1);
+			rldev::common::cli::quit(1);
 		}
 	} else if file_name.ends_with(".gan.toml") {
 		gan::toml_to_gan(file, out_path.to_str().unwrap(), verbose).unwrap_or_else(|err| {
 			eprintln!("Failed to convert \"{}\" to \"{}\" (GAN): {}", get_file_name(file), out_path.display(), gan::format_toml_to_gan_error(&err, verbose));
-			std::process::exit(1);
+			rldev::common::cli::quit(1);
 		});
 	}
 	println!("Successfully converted: {}", out_path.display());
@@ -78,12 +78,12 @@ fn main() {
 
 	if args.version {
 		app::Args::print_version();
-		std::process::exit(0);
+		rldev::common::cli::quit(0);
 	}
 
 	if args.info {
 		app::Args::print_info();
-		std::process::exit(0);
+		rldev::common::cli::quit(0);
 	}
 
 	// Arg: --help
@@ -92,7 +92,7 @@ fn main() {
 	if args.help || raw_args.len() == 1 || args.files.is_empty() {
 		let cmd = <app::Args as clap::CommandFactory>::command();
 		rldev::common::cli::print_help(cmd);
-		std::process::exit(0);
+		rldev::common::cli::quit(0);
 	}
 
 	let verbose = args.verbose;
@@ -104,7 +104,7 @@ fn main() {
 	for path in &inputs {
 		if get_file_type(path).is_none() {
 			eprintln!("Unknown file type: {}", path.display());
-			std::process::exit(1);
+			rldev::common::cli::quit(1);
 		}
 	}
 
@@ -139,5 +139,5 @@ fn main() {
 	for (file, out_path) in args.files.iter().zip(out_paths.iter()) {
 		convert_single(file, out_path, verbose, uppercase);
 	}
-	println!();
+	rldev::common::cli::quit(0);
 }

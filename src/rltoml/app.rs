@@ -107,7 +107,7 @@ pub fn parse_args() -> Args {
 				.color(clap::ColorChoice::Never);
 			let formatted = e.format(&mut cmd);
 			eprintln!("{}", rldev::common::cli::format_output(&formatted.to_string()));
-			std::process::exit(formatted.exit_code());
+			rldev::common::cli::quit(formatted.exit_code());
 		}
 	}
 }
@@ -122,7 +122,6 @@ impl Args {
 			  First release.
 			  Added detailed hex dump to verbose mode.
 			  Added \"-u / --uppercase\" option for uppercase hex digits (default: lowercase).
-
 		", rldev_version = env!("CARGO_PKG_VERSION")}
 	}
 
@@ -134,7 +133,6 @@ impl Args {
 
 			\x1b[1;4mSupported formats:\x1b[0m
 			      \x1b[1m.gan\x1b[0m: bidirectional conversion with \x1b[1m.gan.toml\x1b[0m
-
 		", rldev_version = env!("CARGO_PKG_VERSION")}
 	}
 }
