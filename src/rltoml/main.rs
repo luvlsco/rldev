@@ -46,7 +46,8 @@ fn derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
 	} else if file_name.ends_with(".gan") {
 		input.with_extension("gan.toml")
 	} else {
-		unreachable!("Unknown file type")
+		eprintln!("Unknown file type: {}", input.display());
+		rldev::common::cli::quit(1);
 	}
 }
 
@@ -64,12 +65,12 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 			rldev::common::cli::quit(1);
 		}
 	} else if file_name.ends_with(".gan.toml") {
-		gan::toml_to_gan(file, out_path.to_str().unwrap(), verbose).unwrap_or_else(|err| {
+		gan::toml_to_gan(file, &out_path.display().to_string(), verbose).unwrap_or_else(|err| {
 			eprintln!("Failed to convert \"{}\" to \"{}\" (GAN): {}", get_file_name(file), get_file_name(out_path), gan::format_toml_to_gan_error(&err, verbose));
 			rldev::common::cli::quit(1);
 		});
 	}
-	println!("Successfully converted: {}", out_path.display());
+	println!("Successfully converted: {}", get_file_name(out_path));
 }
 
 fn main() {
