@@ -1,0 +1,7 @@
+[gan]
+bitmap = 123
+
+[[gan.set]]
+frames = [
+  { pattern = 0 },
+]

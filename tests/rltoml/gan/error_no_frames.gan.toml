@@ -1,0 +1,4 @@
+[gan]
+bitmap = "GAN"
+
+[[gan.set]]
