@@ -56,16 +56,16 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 
 	if file_name.ends_with(".gan") {
 		let toml = gan::gan_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
-			eprintln!("Failed to convert \"{}\" to \"{}\" (TOML): {}", get_file_name(file), out_path.display(), gan::format_gan_to_toml_error(&err, file, verbose, uppercase));
+			eprintln!("Failed to convert \"{}\" to \"{}\" (TOML): {}", get_file_name(file), get_file_name(out_path), gan::format_gan_to_toml_error(&err, file, verbose, uppercase));
 			rldev::common::cli::quit(1);
 		});
 		if let Err(err) = std::fs::write(out_path, toml) {
-			eprintln!("Error writing {}: {}", out_path.display(), error_formatter::format_io_error(&err));
+			eprintln!("Error writing {}: {}", get_file_name(out_path), error_formatter::format_io_error(&err));
 			rldev::common::cli::quit(1);
 		}
 	} else if file_name.ends_with(".gan.toml") {
 		gan::toml_to_gan(file, out_path.to_str().unwrap(), verbose).unwrap_or_else(|err| {
-			eprintln!("Failed to convert \"{}\" to \"{}\" (GAN): {}", get_file_name(file), out_path.display(), gan::format_toml_to_gan_error(&err, verbose));
+			eprintln!("Failed to convert \"{}\" to \"{}\" (GAN): {}", get_file_name(file), get_file_name(out_path), gan::format_toml_to_gan_error(&err, verbose));
 			rldev::common::cli::quit(1);
 		});
 	}
