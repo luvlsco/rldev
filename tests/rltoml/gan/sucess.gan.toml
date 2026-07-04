@@ -1,0 +1,19 @@
+[gan]
+bitmap = "SUCCESS"
+
+[[gan.set]]
+x = 0
+y = 0
+time = 80
+alpha = 255
+z = 0
+frames = [
+  { pattern = 0 },
+  { pattern = 1 },
+  { pattern = 2 },
+  { pattern = 3 },
+  { pattern = 4 },
+  { pattern = 5 },
+  { pattern = 6 },
+  { pattern = 7 },
+]
