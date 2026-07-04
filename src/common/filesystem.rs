@@ -16,12 +16,3 @@ pub fn get_bin_name(cmd: &Command) -> String {
 		.map(get_file_name)
 		.unwrap_or_else(|| cmd.get_name().to_string())
 }
-
-/// Creates the given directory if it does not already exist.
-pub fn ensure_dir(dir: &Path) -> std::io::Result<()> {
-	if !dir.exists() {
-		std::fs::create_dir_all(dir)
-	} else {
-		Ok(())
-	}
-}

@@ -32,7 +32,7 @@ pub struct OutputRequest<'a> {
 pub fn resolve_output_path(req: OutputRequest) -> std::io::Result<Vec<PathBuf>> {
 	if let Some(dir_str) = req.outdir {
 		let dir = PathBuf::from(dir_str);
-		crate::common::filesystem::ensure_dir(&dir)?;
+		std::fs::create_dir_all(&dir)?;
 		return Ok(req
 			.inputs
 			.iter()
@@ -46,7 +46,7 @@ pub fn resolve_output_path(req: OutputRequest) -> std::io::Result<Vec<PathBuf>> 
 		}
 
 		let dir = PathBuf::from(name);
-		crate::common::filesystem::ensure_dir(&dir)?;
+		std::fs::create_dir_all(&dir)?;
 		return Ok(req
 			.inputs
 			.iter()

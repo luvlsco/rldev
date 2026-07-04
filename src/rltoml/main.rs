@@ -28,12 +28,12 @@ mod error_formatter;
 use rldev::common::filesystem::get_file_name;
 use rldev::common::options::OutputRequest;
 
-fn get_file_type(path: &std::path::Path) -> Option<(&str, std::path::PathBuf)> {
+fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
 	let file_name = path.file_name()?.to_str()?;
 	if file_name.ends_with(".gan.toml") {
-		Some(("TOML", path.with_extension("").with_extension("gan")))
+		Some(path.with_extension("").with_extension("gan"))
 	} else if file_name.ends_with(".gan") {
-		Some(("GAN", path.with_extension("gan.toml")))
+		Some(path.with_extension("gan.toml"))
 	} else {
 		None
 	}
