@@ -1,0 +1,16 @@
+-- 1.0.0 - 2026-07-07 --
+
+ADDENDUM:
+
+  First release of RlToml: “Converter between RealLive auxiliary data formats
+  and TOML”.
+  
+  Formerly known as "RlXml", this new version rewritten in Rust includes
+  everything from Haeleth's RlXml. Currently supports only .gan (G00 Anim).
+
+RLTOML:
+
+  First release.
+  Added detailed hex dump to verbose mode.
+  Added "-u / --uppercase" option to use uppercase hex digits in the hex dumps
+  (default: lowercase).
