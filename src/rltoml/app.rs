@@ -113,16 +113,16 @@ pub fn parse_args() -> Args {
 }
 
 impl Args {
-	/// Prints version number and latest changelog entry.
+	/// Prints version number and changelog.
 	pub fn print_version() {
 		indoc::printdoc! {"
 			\x1b[1m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
+			Based on RlXml, originally developed in OCaml by Haeleth (2006).
 
-			Latest changes for RlToml (1.0.0 - 2026-06-27):
-			  First release.
-			  Added detailed hex dump to verbose mode.
-			  Added \"-u / --uppercase\" option for uppercase hex digits (default: lowercase).
-		", rldev_version = env!("CARGO_PKG_VERSION")}
+			{changelog}",
+			rldev_version = env!("CARGO_PKG_VERSION"),
+			changelog = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/rltoml/CHANGELOG")),
+		}
 	}
 
 	/// Prints program description and supported features.
