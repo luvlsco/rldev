@@ -70,6 +70,12 @@ Dump (16 of 457 bytes shown, starting at offset 0x00000000, error at offset 0x00
 	assert!(stderr.contains(expected_dump), "caret alignment broken:\n{}", stderr);
 }
 
+#[test]
+fn gan_error_empty_set() {
+	let (ok, _, _) = run(&fixture("error_empty_set.gan"), &[]);
+	assert!(!ok);
+}
+
 // --- TOML errors ---
 
 macro_rules! toml_error_test {
@@ -94,6 +100,7 @@ toml_error_test!(toml_error_frame_not_table, "error_frame_not_table.gan.toml");
 toml_error_test!(toml_error_field_not_int, "error_field_not_int.gan.toml");
 toml_error_test!(toml_error_unknown_field, "error_unknown_field.gan.toml");
 toml_error_test!(toml_error_bad_toml, "error_bad_toml.gan.toml");
+toml_error_test!(toml_error_empty_set, "error_empty_set.gan.toml");
 
 // --- TOML error verbose output ---
 

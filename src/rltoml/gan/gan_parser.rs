@@ -281,6 +281,9 @@ impl KStruct for GanParser_GanDataSection_AnimationSet {
             return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotEqual, src_path: "/types/gan_data_section/types/animation_set/seq/0".to_string() }));
         }
         *self_rc.num_frames.borrow_mut() = _io.read_u4le()?.into();
+        if !(((*self_rc.num_frames() as u32) >= (1 as u32))) {
+            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::LessThan, src_path: "/types/gan_data_section/types/animation_set/seq/1".to_string() }));
+        }
         *self_rc.frames.borrow_mut() = Vec::new();
         let l_frames = *self_rc.num_frames();
         for _i in 0..l_frames {

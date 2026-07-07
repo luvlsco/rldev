@@ -1,5 +1,5 @@
 /*
- RlToml: TOML to GAN convertion utilities
+ RlToml: TOML to GAN conversion utilities
  Copyright (C) 2026 luvlsco
 
  Based on RlXml, originally developed in OCaml by:
@@ -161,6 +161,10 @@ fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteErr
 			.as_inline_table()
 			.ok_or_else(|| GanWriteError::InvalidStructure("frame must be an inline table".to_string()))?;
 		set.frames.push(parse_frame_from_inline_table(inline_table)?);
+	}
+
+	if set.frames.is_empty() {
+		return Err(GanWriteError::InvalidStructure("set must contain at least one frame".to_string()));
 	}
 
 	Ok(set)

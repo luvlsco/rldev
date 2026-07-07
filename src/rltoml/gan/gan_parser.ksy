@@ -86,6 +86,8 @@ types:
 
           - id: num_frames
             type: u4
+            valid:
+              min: 1
 
           - id: frames
             type: animation_frame
