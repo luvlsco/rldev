@@ -1,5 +1,5 @@
 /*
- RlToml: Output formatting tests for RlToml
+ RlToml: Basic I/O & Args tests
  Copyright (C) 2026 luvlsco
 
  This program is free software: you can redistribute it and/or modify
