@@ -24,8 +24,21 @@ meta:
   encoding: Shift_JIS
   endian: le
 
-doc-ref: "https://github.com/eglaysher/rldev/tree/master/src/rlxml/gan.ml"
-  
+doc: |
+  RealLiveMax SDK equivalents:
+  "Cut" -> "pattern"
+  "X" -> "x"
+  "Y" -> "y"
+  "Tr" -> "alpha"
+  "Z" -> "z"
+
+  From "G00anm_edit.exe" inside RealLiveMax SDK 006:
+  "Z": "Parameter not supported by the system (システムが未対応のパラメータです)"
+
+doc-ref:
+  - "https://github.com/eglaysher/rldev/tree/master/src/rlxml/gan.ml"
+  - "https://github.com/rinrin-/crass/blob/master/cui/RealLive/RealLive.cpp"
+
 enums:
   frame:
     30100: pattern
@@ -33,7 +46,7 @@ enums:
     30102: y
     30103: time
     30104: alpha
-    30105: z # From RealLiveMax SDK: "Parameter not supported by the system (システムが未対応のパラメータです)"
+    30105: z
     999999: frame_end
 
 seq:
