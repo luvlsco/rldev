@@ -20,6 +20,7 @@
 */
 
 mod app;
+mod dbs;
 mod gan;
 mod toml_formatter;
 mod binary_reader;
@@ -34,6 +35,8 @@ fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
 		Some(path.with_extension("").with_extension("gan"))
 	} else if file_name.ends_with(".gan") {
 		Some(path.with_extension("gan.toml"))
+	} else if file_name.ends_with(".dbs") {
+		Some(path.with_extension("dbs.bin"))
 	} else {
 		None
 	}
@@ -45,6 +48,8 @@ fn derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
 		input.with_extension("").with_extension("gan")
 	} else if file_name.ends_with(".gan") {
 		input.with_extension("gan.toml")
+	} else if file_name.ends_with(".dbs") {
+		input.with_extension("dbs.bin")
 	} else {
 		eprintln!("Unknown file type: {}", input.display());
 		rldev::common::cli::quit(1);
@@ -55,18 +60,28 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 	let path = std::path::Path::new(file);
 	let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
+	// .gan
 	if file_name.ends_with(".gan") {
 		let toml = gan::gan_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
-			eprintln!("Failed to convert \"{}\" to \"{}\" (TOML): {}", get_file_name(file), get_file_name(out_path), gan::format_gan_to_toml_error(&err, file, verbose, uppercase));
+			eprintln!("Failed to convert \"{}\" to \"{}\" (GAN -> TOML): {}", get_file_name(file), get_file_name(out_path), gan::format_gan_to_toml_error(&err, file, verbose, uppercase));
 			rldev::common::cli::quit(1);
 		});
 		if let Err(err) = std::fs::write(out_path, toml) {
 			eprintln!("Error writing {}: {}", get_file_name(out_path), error_formatter::format_io_error(&err));
 			rldev::common::cli::quit(1);
 		}
+
+	// .gan.toml
 	} else if file_name.ends_with(".gan.toml") {
 		gan::toml_to_gan(file, &out_path.display().to_string(), verbose).unwrap_or_else(|err| {
-			eprintln!("Failed to convert \"{}\" to \"{}\" (GAN): {}", get_file_name(file), get_file_name(out_path), gan::format_toml_to_gan_error(&err, verbose));
+			eprintln!("Failed to convert \"{}\" to \"{}\" (TOML -> GAN): {}", get_file_name(file), get_file_name(out_path), gan::format_toml_to_gan_error(&err, verbose));
+			rldev::common::cli::quit(1);
+		});
+
+	// .dbs.bin
+	} else if file_name.ends_with(".dbs") {
+		dbs::dbs_to_bin(file, &out_path.display().to_string(), verbose).unwrap_or_else(|err| {
+			eprintln!("Failed to convert \"{}\" to \"{}\" (DBS -> BIN): {}", get_file_name(file), get_file_name(out_path), err);
 			rldev::common::cli::quit(1);
 		});
 	}
@@ -118,6 +133,7 @@ fn main() {
 				.and_then(|file_name|
 					if file_name.ends_with(".gan.toml") { Some(".gan") }
 					else if file_name.ends_with(".gan") { Some(".gan.toml") }
+					else if file_name.ends_with(".dbs") { Some(".dbs.bin") }
 					else { None }
 				);
 			converted_output_suffix
