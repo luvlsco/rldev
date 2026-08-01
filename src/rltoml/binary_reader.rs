@@ -178,11 +178,6 @@ pub fn hex_dump_at(path: &str, dump_offset: usize, dump_len: usize, field_offset
 	Ok((dump_line, caret_line))
 }
 
-/// Returns the file size in bytes.
-pub fn file_size(path: &str) -> std::io::Result<u64> {
-	Ok(std::fs::metadata(path)?.len())
-}
-
 /// Converts the read context into the "got" value and offset for error reporting.
 pub fn context_to_got_offset(context: Option<&ReadContext>) -> (Option<(i32, Vec<u8>)>, Option<usize>) {
 	let Some(c) = context else {

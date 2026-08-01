@@ -86,7 +86,7 @@ pub fn format_value(value: i32, bytes: &[u8], uppercase: bool) -> String {
 pub fn format_dump(path: &str, offset: usize, field_len: usize, uppercase: bool) -> Option<String> {
 	let dump_start = offset & !0xF;
 	let dump_len = 16usize;
-	let size = binary_reader::file_size(path).ok()?;
+	let size = std::fs::metadata(path).ok()?.len();
 	let header = format!(
 		"Dump ({} of {} bytes shown, starting at offset {}, error at offset {}):",
 		dump_len, size, binary_reader::format_hex_u32_padded(dump_start as u32, 8, uppercase), binary_reader::format_hex_u32_padded(offset as u32, 8, uppercase)
