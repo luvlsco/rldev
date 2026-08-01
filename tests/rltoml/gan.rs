@@ -62,7 +62,7 @@ fn toml_to_gan() {
 fn gan_error_first_magic_verbose() {
 	let (ok, _, stderr) = run(&fixture("error_first_magic.gan"), &["-v"]);
 	assert!(!ok);
-	assert!(stderr.contains("Failed to convert \"error_first_magic.gan\" to \"error_first_magic.gan.toml\" (TOML): invalid value at first GAN header:"));
+	assert!(stderr.contains("Failed to convert \"error_first_magic.gan\" to \"error_first_magic.gan.toml\" (GAN -> TOML): invalid value at first GAN header:"));
 	let expected_dump = "\
 Dump (16 of 457 bytes shown, starting at offset 0x00000000, error at offset 0x00000000):
 0x00000000 | 10 27 10 00 10 27 00 00 74 27 00 00 09 00 00 00
