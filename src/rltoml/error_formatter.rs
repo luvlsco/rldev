@@ -73,7 +73,7 @@ impl From<kaitai::KError> for ParseError {
 impl From<std::io::Error> for ParseError {
 	/// Converts an I/O error into a `ParseError::Kaitai` with an I/O error message.
 	fn from(e: std::io::Error) -> Self {
-		ParseError::Kaitai(kaitai::KError::IoError { msg: e.to_string() })
+		ParseError::Kaitai(kaitai::KError::IoError { msg: format_io_error(&e) })
 	}
 }
 
@@ -184,7 +184,7 @@ fn le_bytes(value: i32) -> [u8; 4] {
 pub fn format_kaitai_error(err: &kaitai::KError) -> String {
 	use kaitai::KError;
 	match err {
-		KError::IoError { msg } => format!("cannot read file: {}.", msg),
+		KError::IoError { .. } => "cannot read file: Input/output error.".to_string(),
 		KError::Eof { requested, available } => format!("file is truncated (expected {} bytes, found {}).", requested, available),
 		KError::NoTerminatorFound => "expected string terminator not found.".to_string(),
 		KError::EmptyIterator => "expected data but found none.".to_string(),
@@ -198,22 +198,39 @@ pub fn format_kaitai_error(err: &kaitai::KError) -> String {
 	}
 }
 
-/// Formats a `std::io::Error` using the OS error code for translation.
+/// Formats an I/O error with a POSIX-like English description.
 pub fn format_io_error(err: &std::io::Error) -> String {
-	if let Some(code) = err.raw_os_error() {
-		if let Some(english) = translate_os_error_code(code) {
-			return format!("{}. (os error {})", english, code);
-		}
-	}
-	err.to_string()
-}
+	let message = match err.kind() {
+		std::io::ErrorKind::NotFound => "No such file or directory",
+		std::io::ErrorKind::PermissionDenied => "Permission denied",
+		std::io::ErrorKind::AlreadyExists => "File exists",
+		std::io::ErrorKind::BrokenPipe => "Broken pipe",
+		std::io::ErrorKind::WouldBlock => "Resource temporarily unavailable",
+		std::io::ErrorKind::NotADirectory => "Not a directory",
+		std::io::ErrorKind::IsADirectory => "Is a directory",
+		std::io::ErrorKind::DirectoryNotEmpty => "Directory not empty",
+		std::io::ErrorKind::ReadOnlyFilesystem => "Read-only file system",
+		std::io::ErrorKind::InvalidInput => "Invalid argument",
+		std::io::ErrorKind::InvalidData => "Invalid data",
+		std::io::ErrorKind::TimedOut => "Connection timed out",
+		std::io::ErrorKind::WriteZero => "No space left on device",
+		std::io::ErrorKind::StorageFull => "No space left on device",
+		std::io::ErrorKind::NotSeekable => "Illegal seek",
+		std::io::ErrorKind::QuotaExceeded => "Disk quota exceeded",
+		std::io::ErrorKind::FileTooLarge => "File too large",
+		std::io::ErrorKind::ResourceBusy | std::io::ErrorKind::ExecutableFileBusy => "Device or resource busy",
+		std::io::ErrorKind::Deadlock => "Resource deadlock avoided",
+		std::io::ErrorKind::CrossesDevices => "Invalid cross-device link",
+		std::io::ErrorKind::TooManyLinks => "Too many links",
+		std::io::ErrorKind::Interrupted => "Interrupted system call",
+		std::io::ErrorKind::Unsupported => "Operation not supported",
+		std::io::ErrorKind::UnexpectedEof => "Unexpected end of file",
+		std::io::ErrorKind::OutOfMemory => "Cannot allocate memory",
+		_ => "Input/output error",
+	};
 
-fn translate_os_error_code(code: i32) -> Option<&'static str> {
-	match code {
-		2 => Some("file not found"),
-		3 => Some("path not found"),
-		5 => Some("access denied"),
-		32 => Some("file is in use by another process"),
-		_ => None,
+	match err.raw_os_error() {
+		Some(code) => format!("{} (os error {})", message, code),
+		None => message.to_string(),
 	}
 }

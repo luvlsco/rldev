@@ -81,7 +81,11 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 	// .dbs.bin
 	} else if file_name.ends_with(".dbs") {
 		dbs::dbs_to_bin(file, &out_path.display().to_string(), verbose).unwrap_or_else(|err| {
-			eprintln!("Failed to convert \"{}\" to \"{}\" (DBS -> BIN): {}", get_file_name(file), get_file_name(out_path), err);
+			let message = match &err {
+				dbs::dbs_decompress::DbsError::Io(err) => error_formatter::format_io_error(err),
+				_ => err.to_string(),
+			};
+			eprintln!("Failed to convert \"{}\" to \"{}\" (DBS -> BIN): {}", get_file_name(file), get_file_name(out_path), message);
 			rldev::common::cli::quit(1);
 		});
 	}

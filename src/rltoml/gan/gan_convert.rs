@@ -23,6 +23,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use byteorder::{LittleEndian, WriteBytesExt};
 
+use crate::error_formatter;
 use super::gan_parser::GanParser_Frame as GanFrame;
 use super::FrameAttrs;
 
@@ -59,7 +60,10 @@ pub enum GanWriteError {
 /// Formats a TOML-to-GAN conversion error for display.
 /// Non-verbose mode shows only the first line; verbose mode shows full context.
 pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
-	let full_msg = err.to_string();
+	let full_msg = match err {
+		GanWriteError::Io(err) => error_formatter::format_io_error(err),
+		_ => err.to_string(),
+	};
 
 	if !verbose {
 		return full_msg.lines().next().map(|l| format!("{}.", l.trim())).unwrap_or_else(|| full_msg.clone());
