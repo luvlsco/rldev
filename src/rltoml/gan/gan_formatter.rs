@@ -233,14 +233,14 @@ fn valid_frame_tags() -> [i32; 7] {
 
 /// Computes the expected offset of the data section start marker (20000).
 fn compute_data_section_offset(path: &str) -> Option<usize> {
-	crate::binary_reader::read_u4_le_at(path, 12).ok().map(|n| 16 + n as usize).filter(|&o| o != 0)
+	crate::binary_reader::read_u4_le(path, 12).ok().map(|(n, _)| 16 + n as usize).filter(|&o| o != 0)
 }
 
 /// Computes the expected offset of the animation set start marker (30000).
 fn compute_set_marker_offset(path: &str) -> Option<usize> {
-	crate::binary_reader::read_u4_le_at(path, 12)
+	crate::binary_reader::read_u4_le(path, 12)
 		.ok()
-		.map(|n| 16 + n as usize + 8)
+		.map(|(n, _)| 16 + n as usize + 8)
 		.filter(|&o| o != 0)
 }
 

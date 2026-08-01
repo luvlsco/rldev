@@ -98,7 +98,7 @@ pub fn format_dump(path: &str, offset: usize, field_len: usize, uppercase: bool)
 /// Formats a single-value magic-number validation error with hex dump.
 pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool, uppercase: bool) -> String {
 	let expected_bytes = le_bytes(spec.expected);
-	let (got, got_bytes) = match binary_reader::read_u4_le_full(path, spec.offset) {
+	let (got, got_bytes) = match 	binary_reader::read_u4_le(path, spec.offset) {
 		Ok((v, b)) => (v as i32, b),
 		Err(_) => {
 			return format!("invalid value at {}: (could not re-read file).", spec.label);

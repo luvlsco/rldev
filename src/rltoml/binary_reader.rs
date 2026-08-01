@@ -114,15 +114,8 @@ pub fn open(path: &str) -> KResult<BytesReader> {
 	BytesReader::open(path)
 }
 
-/// Reads a little-endian u32 at the given offset.
-pub fn read_u4_le_at(path: &str, offset: usize) -> KResult<i64> {
-	let reader = open(path)?;
-	reader.seek(offset)?;
-	Ok(reader.read_u4le()? as i64)
-}
-
 /// Reads a little-endian u32 and its raw bytes at the given offset.
-pub fn read_u4_le_full(path: &str, offset: usize) -> KResult<(i64, [u8; 4])> {
+pub fn read_u4_le(path: &str, offset: usize) -> KResult<(i64, [u8; 4])> {
 	let reader = open(path)?;
 	reader.seek(offset)?;
 	let mut bytes = [0u8; 4];
