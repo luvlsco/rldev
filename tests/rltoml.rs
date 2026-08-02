@@ -23,6 +23,9 @@ mod common;
 #[path = "rltoml/gan.rs"]
 mod gan;
 
+#[path = "rltoml/dbs.rs"]
+mod dbs;
+
 fn fixture(name: &str) -> PathBuf {
 	common::fixture("rltoml/gan", name)
 }

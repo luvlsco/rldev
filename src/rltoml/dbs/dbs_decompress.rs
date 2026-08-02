@@ -43,7 +43,7 @@ const KEY_PATTERN: u32 = 0x01825D99;
 
 /// XORs every u32 from offset 4 with the fixed pre-decompress key.
 /// The first u32 (offset 0-3) is left untouched. Self-inverse.
-fn remove_dbs_xor_layer(data: &mut [u8]) {
+pub(crate) fn apply_xor_layer(data: &mut [u8]) {
 	let len = data.len();
 	for i in (4..len).step_by(4) {
 		if i + 4 > len {
@@ -105,7 +105,7 @@ fn decompress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
 			let offset = ((b2 as usize) << 4) | (b1 as usize >> 4);
 			let len = (b1 & 0xF) as usize + 2;
 
-			if offset > out_pos {
+			if offset == 0 || offset > out_pos || len > dlen - out_pos {
 				return Err(DbsError::InvalidFormat("invalid LZ77 back-reference offset".into()));
 			}
 
@@ -119,13 +119,17 @@ fn decompress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
 		flags >>= 1;
 	}
 
+	if out_pos != dlen {
+		return Err(DbsError::InvalidFormat("compressed data ended before the declared length".into()));
+	}
+
 	Ok(out)
 }
 
 /// Post-decompress decrypt layer. XORs each u32 with KEY_A or KEY_B,
 /// chosen by a packed 25-bit `KEY_PATTERN` cycled in 5-entry windows
 /// advancing every 16 u32s (period 80). Self-inverse.
-fn decrypt_dbs(data: &mut [u8]) {
+pub(crate) fn encrypt_dbs(data: &mut [u8]) {
 	for (i, chunk) in data.chunks_exact_mut(4).enumerate() {
 		let p = i % 80;
 		// map position p to a bit index in KEY_PATTERN:
@@ -157,17 +161,137 @@ pub fn dbs_to_bin(input_path: &str, output_path: &str, verbose: bool) -> Result<
 	let mut data = std::fs::read(input_path)?;
 
 	if verbose { eprintln!("Removing XOR layer"); }
-	remove_dbs_xor_layer(&mut data);
+	apply_xor_layer(&mut data);
 
 	if verbose { eprintln!("Decompressing"); }
 	let decompressed = decompress_dbs(&data)?;
 	let mut data = decompressed;
 
 	if verbose { eprintln!("Decrypting"); }
-	decrypt_dbs(&mut data);
+	encrypt_dbs(&mut data);
 
 	if verbose { eprintln!("Writing raw database binary"); }
 	std::fs::write(output_path, &data)?;
 
 	Ok(())
+}
+
+#[derive(Clone, Copy)]
+enum LzToken {
+	Literal(u8),
+	BackReference { offset: usize, length: usize },
+}
+
+/// Compresses decrypted internal DBS data into the three-word archive header
+/// plus the flag-driven LZSS stream used by RealLive.
+fn compress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
+	let mut tokens = Vec::new();
+	let mut pos = 0usize;
+	while pos < data.len() {
+		let (offset, length) = find_match(data, pos);
+		if length >= 2 {
+			tokens.push(LzToken::BackReference { offset, length });
+			pos += length;
+		} else {
+			tokens.push(LzToken::Literal(data[pos]));
+			pos += 1;
+		}
+	}
+
+	let mut stream = Vec::new();
+	for chunk in tokens.chunks(8) {
+		let mut flags = 0u8;
+		for (bit, token) in chunk.iter().enumerate() {
+			if matches!(token, LzToken::Literal(_)) {
+				flags |= 1 << bit;
+			}
+		}
+		stream.push(flags);
+		for token in chunk {
+			match token {
+				LzToken::Literal(value) => stream.push(*value),
+				LzToken::BackReference { offset, length } => {
+					stream.push((((offset & 0xF) << 4) | (length - 2)) as u8);
+					stream.push((offset >> 4) as u8);
+				}
+			}
+		}
+	}
+
+	let compressed_length = u32::try_from(stream.len().checked_add(8).ok_or_else(|| DbsError::InvalidFormat("compressed DBS is too large".into()))?)
+		.map_err(|_| DbsError::InvalidFormat("compressed DBS is too large".into()))?;
+	let decompressed_length = u32::try_from(data.len())
+		.map_err(|_| DbsError::InvalidFormat("DBS data is too large".into()))?;
+	let mut output = Vec::with_capacity(stream.len() + 12);
+	output.extend_from_slice(&0u32.to_le_bytes());
+	output.extend_from_slice(&compressed_length.to_le_bytes());
+	output.extend_from_slice(&decompressed_length.to_le_bytes());
+	output.extend_from_slice(&stream);
+	Ok(output)
+}
+
+fn find_match(data: &[u8], pos: usize) -> (usize, usize) {
+	let max_length = (data.len() - pos).min(17);
+	if max_length < 2 || pos == 0 {
+		return (0, 0);
+	}
+
+	let window_start = pos.saturating_sub(0xFFF);
+	let mut best = (0usize, 0usize);
+	for candidate in window_start..pos {
+		let offset = pos - candidate;
+		let mut length = 0usize;
+		while length < max_length && data[candidate + (length % offset)] == data[pos + length] {
+			length += 1;
+		}
+		if length > best.1 {
+			best = (offset, length);
+			if length == max_length {
+				break;
+			}
+		}
+	}
+	best
+}
+
+/// Writes decrypted internal DBS data as an obfuscated `.dbs` archive.
+pub(crate) fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) -> Result<(), DbsError> {
+	if verbose {
+		println!("Encrypting DBS data");
+	}
+	let mut encrypted = data.to_vec();
+	encrypt_dbs(&mut encrypted);
+
+	if verbose {
+		println!("Compressing DBS data");
+	}
+	let mut output = compress_dbs(&encrypted)?;
+	apply_xor_layer(&mut output);
+
+	if verbose {
+		println!("Writing DBS file");
+	}
+	std::fs::write(output_path, output)?;
+	Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+	use super::{apply_xor_layer, compress_dbs, decompress_dbs, encrypt_dbs};
+
+	#[test]
+	fn compression_round_trip() {
+		let data = b"ABCDABCDABCDABCD database data ".repeat(16);
+		let mut encrypted = data.clone();
+		encrypt_dbs(&mut encrypted);
+		let mut archive = compress_dbs(&encrypted).unwrap();
+		assert_eq!(&archive[0..4], &[0, 0, 0, 0]);
+
+		apply_xor_layer(&mut archive);
+		apply_xor_layer(&mut archive);
+		let mut decoded = decompress_dbs(&archive).unwrap();
+		encrypt_dbs(&mut decoded);
+
+		assert_eq!(decoded, data);
+	}
 }

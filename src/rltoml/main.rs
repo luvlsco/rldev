@@ -35,6 +35,10 @@ fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
 		Some(path.with_extension("").with_extension("gan"))
 	} else if file_name.ends_with(".gan") {
 		Some(path.with_extension("gan.toml"))
+	} else if file_name.ends_with(".dbs.bin.toml") {
+		Some(path.with_extension("").with_extension(""))
+	} else if file_name.ends_with(".dbs.bin") {
+		Some(path.with_extension("bin.toml"))
 	} else if file_name.ends_with(".dbs") {
 		Some(path.with_extension("dbs.bin"))
 	} else {
@@ -48,6 +52,10 @@ fn derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
 		input.with_extension("").with_extension("gan")
 	} else if file_name.ends_with(".gan") {
 		input.with_extension("gan.toml")
+	} else if file_name.ends_with(".dbs.bin.toml") {
+		input.with_extension("").with_extension("")
+	} else if file_name.ends_with(".dbs.bin") {
+		input.with_extension("bin.toml")
 	} else if file_name.ends_with(".dbs") {
 		input.with_extension("dbs.bin")
 	} else {
@@ -78,7 +86,25 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 			rldev::common::cli::quit(1);
 		});
 
+	// .dbs.bin.toml
+	} else if file_name.ends_with(".dbs.bin.toml") {
+		dbs::toml_to_dbs(file, &out_path.display().to_string(), verbose).unwrap_or_else(|err| {
+			eprintln!("Failed to convert \"{}\" to \"{}\" (TOML -> DBS): {}", get_file_name(file), get_file_name(out_path), dbs::format_toml_to_dbs_error(&err, verbose));
+			rldev::common::cli::quit(1);
+		});
+
 	// .dbs.bin
+	} else if file_name.ends_with(".dbs.bin") {
+		let toml = dbs::dbs_bin_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
+			eprintln!("Failed to convert \"{}\" to \"{}\" (BIN -> TOML): {}", get_file_name(file), get_file_name(out_path), dbs::format_dbs_bin_to_toml_error(&err, file, verbose, uppercase));
+			rldev::common::cli::quit(1);
+		});
+		if let Err(err) = std::fs::write(out_path, toml) {
+			eprintln!("Error writing {}: {}", get_file_name(out_path), error_formatter::format_io_error(&err));
+			rldev::common::cli::quit(1);
+		}
+
+	// .dbs
 	} else if file_name.ends_with(".dbs") {
 		dbs::dbs_to_bin(file, &out_path.display().to_string(), verbose).unwrap_or_else(|err| {
 			let message = match &err {
@@ -137,6 +163,8 @@ fn main() {
 				.and_then(|file_name|
 					if file_name.ends_with(".gan.toml") { Some(".gan") }
 					else if file_name.ends_with(".gan") { Some(".gan.toml") }
+					else if file_name.ends_with(".dbs.bin.toml") { Some(".dbs") }
+					else if file_name.ends_with(".dbs.bin") { Some(".dbs.bin.toml") }
 					else if file_name.ends_with(".dbs") { Some(".dbs.bin") }
 					else { None }
 				);
