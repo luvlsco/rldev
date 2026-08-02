@@ -118,7 +118,7 @@ types:
         doc: "Underlying flat u4 value before interpretation"
 
       col_type:
-        value: _root.types[col_idx].data_type
+        value: "_root.types[col_idx].data_type == column_type::string ? column_type::string : _root.types[col_idx].data_type"
 
       str_value:
         pos: _root.string_table_offset + raw_value

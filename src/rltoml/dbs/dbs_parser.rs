@@ -22,6 +22,7 @@
 #![allow(irrefutable_let_patterns)]
 #![allow(unused_comparisons)]
 #![allow(dead_code)]
+#![allow(unused_parens)]
 
 extern crate kaitai;
 use kaitai::*;
@@ -345,7 +346,7 @@ impl DbsParser_Cell {
             return Ok(self.col_type.borrow());
         }
         self.f_col_type.set(true);
-        *self.col_type.borrow_mut() = _r.types()?[*self.col_idx() as usize].data_type();
+        *self.col_type.borrow_mut() = if *_r.types()?[*self.col_idx() as usize].data_type() == DbsParser_ColumnType::String { DbsParser_ColumnType::String.clone() } else { _r.types()?[*self.col_idx() as usize].data_type().clone() };
         Ok(self.col_type.borrow())
     }
 
