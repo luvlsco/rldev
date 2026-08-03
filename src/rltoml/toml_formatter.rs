@@ -20,34 +20,36 @@ use toml_edit::{InlineTable, Value};
 
 /// Trait for frame attribute types that can be serialized to TOML inline tables.
 pub trait TomlFrameAttrs: Clone + Default {
-	fn to_inline_table_fields(&self) -> Vec<(String, String)>;
-	fn diff_from(&self, defaults: &Self) -> Self;
-	fn common_attrs(frames: &[Self]) -> Self;
-	fn to_block_fields(&self) -> Vec<(String, String)> {
-		self.to_inline_table_fields()
-	}
+    fn to_inline_table_fields(&self) -> Vec<(String, String)>;
+    fn diff_from(&self, defaults: &Self) -> Self;
+    fn common_attrs(frames: &[Self]) -> Self;
+    fn to_block_fields(&self) -> Vec<(String, String)> {
+        self.to_inline_table_fields()
+    }
 }
 
 /// Formats block fields as `"key = value"` lines for TOML output.
 pub fn write_block_fields(attrs: &impl TomlFrameAttrs) -> Vec<String> {
-	attrs.to_block_fields()
-		.into_iter()
-		.map(|(name, val)| format!("{} = {}", name, val))
-		.collect()
+    attrs
+        .to_block_fields()
+        .into_iter()
+        .map(|(name, val)| format!("{} = {}", name, val))
+        .collect()
 }
 
 /// Builds a TOML inline table from key-value pairs, parsing each value.
 pub fn build_inline_table(fields: &[(String, String)]) -> InlineTable {
-	let mut table = InlineTable::new();
-	for (key, value) in fields {
-		let parsed_value: Value = value.parse().unwrap_or_else(|_| {
-			let toml_str = format!("x = \"{}\"", value.replace('"', "\\\""));
-			toml_str.parse::<toml_edit::Item>()
-				.ok()
-				.and_then(|item| item.as_value().cloned())
-				.unwrap_or_else(|| "\"\"".parse().unwrap())
-		});
-		table.insert(key, parsed_value);
-	}
-	table
+    let mut table = InlineTable::new();
+    for (key, value) in fields {
+        let parsed_value: Value = value.parse().unwrap_or_else(|_| {
+            let toml_str = format!("x = \"{}\"", value.replace('"', "\\\""));
+            toml_str
+                .parse::<toml_edit::Item>()
+                .ok()
+                .and_then(|item| item.as_value().cloned())
+                .unwrap_or_else(|| "\"\"".parse().unwrap())
+        });
+        table.insert(key, parsed_value);
+    }
+    table
 }

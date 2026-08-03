@@ -19,7 +19,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use clap::{Parser, CommandFactory};
+use clap::{CommandFactory, Parser};
 
 /// Command-line arguments/options for RlToml.
 #[derive(Parser, Debug)]
@@ -38,47 +38,47 @@ use clap::{Parser, CommandFactory};
 )]
 
 pub struct Args {
-	// RlToml Information
-	#[arg(
-		long = "version",
-		help = "display RlToml version information",
-		help_heading = "Information",
-	)]
-	pub version: bool,
+    // RlToml Information
+    #[arg(
+        long = "version",
+        help = "display RlToml version information",
+        help_heading = "Information"
+    )]
+    pub version: bool,
 
-	#[arg(
-		long = "info",
-		help = "display detailed information about RlToml and its usage",
-		help_heading = "Information",
-	)]
-	pub info: bool,
+    #[arg(
+        long = "info",
+        help = "display detailed information about RlToml and its usage",
+        help_heading = "Information"
+    )]
+    pub info: bool,
 
-	#[arg(
-		long = "help",
-		help = "display this usage information",
-		help_heading = "Information",
-	)]
-	pub help: bool,
+    #[arg(
+        long = "help",
+        help = "display this usage information",
+        help_heading = "Information"
+    )]
+    pub help: bool,
 
-	// RlToml Options
-	#[arg(
-		short = 'v',
-		long = "verbose",
-		help = "show detailed information about what RlToml is doing",
-		help_heading = "Options",
-	)]
-	pub verbose: bool,
+    // RlToml Options
+    #[arg(
+        short = 'v',
+        long = "verbose",
+        help = "show detailed information about what RlToml is doing",
+        help_heading = "Options"
+    )]
+    pub verbose: bool,
 
-	#[arg(
-		short = 'u',
-		long = "uppercase",
-		help = "use uppercase hex digits (A-F) in hex dumps",
-		requires = "verbose",
-		help_heading = "Options",
-	)]
-	pub uppercase: bool,
+    #[arg(
+        short = 'u',
+        long = "uppercase",
+        help = "use uppercase hex digits (A-F) in hex dumps",
+        requires = "verbose",
+        help_heading = "Options"
+    )]
+    pub uppercase: bool,
 
-	#[arg(
+    #[arg(
 		short = 'o',
 		long = "output",
 		value_name = "NAME",
@@ -88,51 +88,50 @@ pub struct Args {
 			"outputs in"),
 		help_heading = "Options",
 	)]
-	pub output: Option<String>,
+    pub output: Option<String>,
 
-	#[arg(
-		value_name = "FILE/FILES",
-		help = "input file(s) to convert",
-	)]
-	pub files: Vec<String>,
+    #[arg(value_name = "FILE/FILES", help = "input file(s) to convert")]
+    pub files: Vec<String>,
 }
 
 /// Parses command-line arguments using Clap.
 /// Error messages are rendered monochrome to avoid clap's default ANSI coloring.
 pub fn parse_args() -> Args {
-	match Args::try_parse() {
-		Ok(args) => args,
-		Err(e) => {
-			let mut cmd = <Args as CommandFactory>::command()
-				.color(clap::ColorChoice::Never);
-			let formatted = e.format(&mut cmd);
-			eprintln!("{}", rldev::common::cli::format_output(&formatted.to_string()));
-			rldev::common::cli::quit(formatted.exit_code());
-		}
-	}
+    match Args::try_parse() {
+        Ok(args) => args,
+        Err(e) => {
+            let mut cmd = <Args as CommandFactory>::command().color(clap::ColorChoice::Never);
+            let formatted = e.format(&mut cmd);
+            eprintln!(
+                "{}",
+                rldev::common::cli::format_output(&formatted.to_string())
+            );
+            rldev::common::cli::quit(formatted.exit_code());
+        }
+    }
 }
 
 impl Args {
-	/// Prints version number and changelog.
-	pub fn print_version() {
-		indoc::printdoc! {"
+    /// Prints version number and changelog.
+    pub fn print_version() {
+        indoc::printdoc! {"
 			\x1b[1m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
 			Based on RlXml, originally developed in OCaml by Haeleth (2006).
 
 			{changelog}",
-			rldev_version = env!("CARGO_PKG_VERSION"),
-			changelog = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/rltoml/CHANGELOG")),
-		}
-	}
+            rldev_version = env!("CARGO_PKG_VERSION"),
+            changelog = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/docs/rltoml/CHANGELOG")),
+        }
+    }
 
-	/// Prints program description and supported features.
-	pub fn print_info() {
-		indoc::printdoc! {"
+    /// Prints program description and supported features.
+    pub fn print_info() {
+        indoc::printdoc! {"
 			\x1b[1m[ RlToml {rldev_version} ]\x1b[0m: Converter between RealLive auxiliary data formats and TOML
 			Based on RlXml, originally developed in OCaml by Haeleth (2006).
 
 			\x1b[1;4mSupported formats:\x1b[0m
 			      \x1b[1m.gan\x1b[0m: bidirectional conversion with \x1b[1m.gan.toml\x1b[0m
 		", rldev_version = env!("CARGO_PKG_VERSION")}
-	}
+    }
 }

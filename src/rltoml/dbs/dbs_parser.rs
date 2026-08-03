@@ -26,8 +26,8 @@
 
 extern crate kaitai;
 use kaitai::*;
+use std::cell::{Cell, Ref, RefCell};
 use std::convert::{TryFrom, TryInto};
-use std::cell::{Ref, Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 /**
@@ -86,13 +86,10 @@ impl KStruct for DbsParser {
     }
 }
 impl DbsParser {
-
     /**
      * Sequential row IDs (0, 1, 2, ..., num_row_ids-1)
      */
-    pub fn row_ids(
-        &self
-    ) -> KResult<Ref<'_, Vec<u32>>> {
+    pub fn row_ids(&self) -> KResult<Ref<'_, Vec<u32>>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -115,9 +112,7 @@ impl DbsParser {
     /**
      * Rows with each cell resolved according to its column's data_type
      */
-    pub fn rows(
-        &self
-    ) -> KResult<Ref<'_, Vec<OptRc<DbsParser_Row>>>> {
+    pub fn rows(&self) -> KResult<Ref<'_, Vec<OptRc<DbsParser_Row>>>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -129,8 +124,16 @@ impl DbsParser {
         *self.rows.borrow_mut() = Vec::new();
         let l_rows = self.row_ids()?.len();
         for _i in 0..l_rows {
-            let f = |t : &mut DbsParser_Row| Ok(t.set_params((_i).try_into().map_err(|_| KError::CastError)?));
-            let t = Self::read_into_with_init::<_, DbsParser_Row>(&*_io, Some(self._root.clone()), Some(self._self.clone()), &f)?.into();
+            let f = |t: &mut DbsParser_Row| {
+                Ok(t.set_params((_i).try_into().map_err(|_| KError::CastError)?))
+            };
+            let t = Self::read_into_with_init::<_, DbsParser_Row>(
+                &*_io,
+                Some(self._root.clone()),
+                Some(self._self.clone()),
+                &f,
+            )?
+            .into();
             self.rows.borrow_mut().push(t);
         }
         Ok(self.rows.borrow())
@@ -139,9 +142,7 @@ impl DbsParser {
     /**
      * Raw string table bytes (SJIS, null-terminated)
      */
-    pub fn string_table_raw(
-        &self
-    ) -> KResult<Ref<'_, Vec<u8>>> {
+    pub fn string_table_raw(&self) -> KResult<Ref<'_, Vec<u8>>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -152,7 +153,11 @@ impl DbsParser {
         self.f_string_table_raw.set(true);
         let _pos = _io.pos();
         _io.seek(*self.string_table_offset() as usize)?;
-        *self.string_table_raw.borrow_mut() = _io.read_bytes(((*self.string_end() as u32) - (*self.string_table_offset() as u32)) as usize)?.into();
+        *self.string_table_raw.borrow_mut() = _io
+            .read_bytes(
+                ((*self.string_end() as u32) - (*self.string_table_offset() as u32)) as usize,
+            )?
+            .into();
         _io.seek(_pos)?;
         Ok(self.string_table_raw.borrow())
     }
@@ -160,9 +165,7 @@ impl DbsParser {
     /**
      * Column type descriptors
      */
-    pub fn types(
-        &self
-    ) -> KResult<Ref<'_, Vec<OptRc<DbsParser_ColumnTypeEntry>>>> {
+    pub fn types(&self) -> KResult<Ref<'_, Vec<OptRc<DbsParser_ColumnTypeEntry>>>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -176,7 +179,12 @@ impl DbsParser {
         *self.types.borrow_mut() = Vec::new();
         let l_types = *self.num_types();
         for _i in 0..l_types {
-            let t = Self::read_into::<_, DbsParser_ColumnTypeEntry>(&*_io, Some(self._root.clone()), Some(self._self.clone()))?.into();
+            let t = Self::read_into::<_, DbsParser_ColumnTypeEntry>(
+                &*_io,
+                Some(self._root.clone()),
+                Some(self._self.clone()),
+            )?
+            .into();
             self.types.borrow_mut().push(t);
         }
         _io.seek(_pos)?;
@@ -186,9 +194,7 @@ impl DbsParser {
     /**
      * Flat value array: string offsets (relative to string_table_offset) or raw integers
      */
-    pub fn values(
-        &self
-    ) -> KResult<Ref<'_, Vec<u32>>> {
+    pub fn values(&self) -> KResult<Ref<'_, Vec<u32>>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -271,15 +277,16 @@ impl From<&DbsParser_ColumnType> for i64 {
         match *v {
             DbsParser_ColumnType::String => 83,
             DbsParser_ColumnType::Integer => 86,
-            DbsParser_ColumnType::Unknown(v) => v
+            DbsParser_ColumnType::Unknown(v) => v,
         }
     }
 }
 
 impl Default for DbsParser_ColumnType {
-    fn default() -> Self { DbsParser_ColumnType::Unknown(0) }
+    fn default() -> Self {
+        DbsParser_ColumnType::Unknown(0)
+    }
 }
-
 
 #[derive(Default, Debug, Clone)]
 pub struct DbsParser_Cell {
@@ -335,9 +342,7 @@ impl DbsParser_Cell {
     }
 }
 impl DbsParser_Cell {
-    pub fn col_type(
-        &self
-    ) -> KResult<Ref<'_, DbsParser_ColumnType>> {
+    pub fn col_type(&self) -> KResult<Ref<'_, DbsParser_ColumnType>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -346,16 +351,19 @@ impl DbsParser_Cell {
             return Ok(self.col_type.borrow());
         }
         self.f_col_type.set(true);
-        *self.col_type.borrow_mut() = if *_r.types()?[*self.col_idx() as usize].data_type() == DbsParser_ColumnType::String { DbsParser_ColumnType::String.clone() } else { _r.types()?[*self.col_idx() as usize].data_type().clone() };
+        *self.col_type.borrow_mut() =
+            if *_r.types()?[*self.col_idx() as usize].data_type() == DbsParser_ColumnType::String {
+                DbsParser_ColumnType::String.clone()
+            } else {
+                _r.types()?[*self.col_idx() as usize].data_type().clone()
+            };
         Ok(self.col_type.borrow())
     }
 
     /**
      * Resolved integer when column data_type == integer
      */
-    pub fn int_value(
-        &self
-    ) -> KResult<Ref<'_, u32>> {
+    pub fn int_value(&self) -> KResult<Ref<'_, u32>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -373,9 +381,7 @@ impl DbsParser_Cell {
     /**
      * Underlying flat u4 value before interpretation
      */
-    pub fn raw_value(
-        &self
-    ) -> KResult<Ref<'_, u32>> {
+    pub fn raw_value(&self) -> KResult<Ref<'_, u32>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -384,16 +390,16 @@ impl DbsParser_Cell {
             return Ok(self.raw_value.borrow());
         }
         self.f_raw_value.set(true);
-        *self.raw_value.borrow_mut() = (_r.values()?[((((*self.row_idx() as i32) * (*_r.num_types() as i32)) as i32) + (*self.col_idx() as i32)) as usize]) as u32;
+        *self.raw_value.borrow_mut() =
+            (_r.values()?[((((*self.row_idx() as i32) * (*_r.num_types() as i32)) as i32)
+                + (*self.col_idx() as i32)) as usize]) as u32;
         Ok(self.raw_value.borrow())
     }
 
     /**
      * Resolved string when column data_type == string
      */
-    pub fn str_value(
-        &self
-    ) -> KResult<Ref<'_, String>> {
+    pub fn str_value(&self) -> KResult<Ref<'_, String>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -406,7 +412,10 @@ impl DbsParser_Cell {
             let io = Clone::clone(&*_r._io());
             let _pos = io.pos();
             io.seek(((*_r.string_table_offset() as u32) + (*self.raw_value()? as u32)) as usize)?;
-            *self.str_value.borrow_mut() = bytes_to_str(&io.read_bytes_term(0, false, true, true)?.into(), "Shift_JIS")?;
+            *self.str_value.borrow_mut() = bytes_to_str(
+                &io.read_bytes_term(0, false, true, true)?.into(),
+                "Shift_JIS",
+            )?;
             io.seek(_pos)?;
         }
         Ok(self.str_value.borrow())
@@ -449,8 +458,7 @@ impl KStruct for DbsParser_ColumnTypeEntry {
         Ok(())
     }
 }
-impl DbsParser_ColumnTypeEntry {
-}
+impl DbsParser_ColumnTypeEntry {}
 
 /**
  * Column identifier
@@ -516,13 +524,10 @@ impl DbsParser_Row {
     }
 }
 impl DbsParser_Row {
-
     /**
      * One cell per column, resolved (string or integer) via cell type
      */
-    pub fn cells(
-        &self
-    ) -> KResult<Ref<'_, Vec<OptRc<DbsParser_Cell>>>> {
+    pub fn cells(&self) -> KResult<Ref<'_, Vec<OptRc<DbsParser_Cell>>>> {
         let _io = self._io.borrow();
         let _rrc = self._root.get_value().borrow().upgrade();
         let _prc = self._parent.get_value().borrow().upgrade();
@@ -534,8 +539,21 @@ impl DbsParser_Row {
         *self.cells.borrow_mut() = Vec::new();
         let l_cells = *_r.num_types();
         for _i in 0..l_cells {
-            let f = |t : &mut DbsParser_Cell| Ok(t.set_params((*self.row_idx()).try_into().map_err(|_| KError::CastError)?, (_i).try_into().map_err(|_| KError::CastError)?));
-            let t = Self::read_into_with_init::<_, DbsParser_Cell>(&*_io, Some(self._root.clone()), Some(self._self.clone()), &f)?.into();
+            let f = |t: &mut DbsParser_Cell| {
+                Ok(t.set_params(
+                    (*self.row_idx())
+                        .try_into()
+                        .map_err(|_| KError::CastError)?,
+                    (_i).try_into().map_err(|_| KError::CastError)?,
+                ))
+            };
+            let t = Self::read_into_with_init::<_, DbsParser_Cell>(
+                &*_io,
+                Some(self._root.clone()),
+                Some(self._self.clone()),
+                &f,
+            )?
+            .into();
             self.cells.borrow_mut().push(t);
         }
         Ok(self.cells.borrow())

@@ -23,73 +23,79 @@ use crate::error_formatter::{self, ParseError, ParseResult};
 
 /// Parses a decrypted DBS binary using the generated Kaitai parser.
 pub fn parse_dbs_bin(path: &str) -> ParseResult<OptRc<DbsParser>> {
-	let reader = crate::binary_reader::TrackingReader::open(path)?;
-	DbsParser::read_into::<_, DbsParser>(&reader, None, None).map_err(|err| {
-		let context = reader.read_context();
-		ParseError::kaitai_with_context(err, context)
-	})
+    let reader = crate::binary_reader::TrackingReader::open(path)?;
+    DbsParser::read_into::<_, DbsParser>(&reader, None, None).map_err(|err| {
+        let context = reader.read_context();
+        ParseError::kaitai_with_context(err, context)
+    })
 }
 
 /// Converts a decrypted DBS binary into the human-readable TOML schema.
 pub fn dbs_bin_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
-	if verbose {
-		println!("Reading DBS binary");
-	}
+    if verbose {
+        println!("Reading DBS binary");
+    }
 
-	let dbs = parse_dbs_bin(path)?;
-	let types = dbs.types().map_err(ParseError::from)?;
-	let mut lines = vec!["[dbs]".to_string(), String::new()];
+    let dbs = parse_dbs_bin(path)?;
+    let types = dbs.types().map_err(ParseError::from)?;
+    let mut lines = vec!["[dbs]".to_string(), String::new()];
 
-	for column in types.iter() {
-		let column = column.get();
-		lines.push("[[dbs.column]]".to_string());
-		lines.push(format!("column_id = {}", *column.column_id()));
-		match &*column.data_type() {
-			DbsParser_ColumnType::String => lines.push("type = \"string\"".to_string()),
-			DbsParser_ColumnType::Integer => lines.push("type = \"integer\"".to_string()),
-			DbsParser_ColumnType::Unknown(code) => {
-				lines.push("type = \"unknown\"".to_string());
-				lines.push(format!("type_code = {}", code));
-			}
-		}
-		lines.push(String::new());
-	}
+    for column in types.iter() {
+        let column = column.get();
+        lines.push("[[dbs.column]]".to_string());
+        lines.push(format!("column_id = {}", *column.column_id()));
+        match &*column.data_type() {
+            DbsParser_ColumnType::String => lines.push("type = \"string\"".to_string()),
+            DbsParser_ColumnType::Integer => lines.push("type = \"integer\"".to_string()),
+            DbsParser_ColumnType::Unknown(code) => {
+                lines.push("type = \"unknown\"".to_string());
+                lines.push(format!("type_code = {}", code));
+            }
+        }
+        lines.push(String::new());
+    }
 
-	let row_ids = dbs.row_ids().map_err(ParseError::from)?;
-	let rows = dbs.rows().map_err(ParseError::from)?;
-	for (row_index, row_rc) in rows.iter().enumerate() {
-		let row = row_rc.get();
-		let cells = row.cells().map_err(ParseError::from)?;
-		lines.push("[[dbs.row]]".to_string());
-		lines.push(format!("row_id = {}", row_ids[row_index]));
+    let row_ids = dbs.row_ids().map_err(ParseError::from)?;
+    let rows = dbs.rows().map_err(ParseError::from)?;
+    for (row_index, row_rc) in rows.iter().enumerate() {
+        let row = row_rc.get();
+        let cells = row.cells().map_err(ParseError::from)?;
+        lines.push("[[dbs.row]]".to_string());
+        lines.push(format!("row_id = {}", row_ids[row_index]));
 
-		for (column_index, cell_rc) in cells.iter().enumerate() {
-			let cell = cell_rc.get();
-			let value = match &*cell.col_type().map_err(ParseError::from)? {
-				DbsParser_ColumnType::String => {
-					toml_edit::Value::from(cell.str_value().map_err(ParseError::from)?.as_str()).to_string()
-				}
-				DbsParser_ColumnType::Integer | DbsParser_ColumnType::Unknown(_) => {
-					(*cell.raw_value().map_err(ParseError::from)?).to_string()
-				}
-			};
-			lines.push(format!("row_column_{} = {}", column_index, value));
-		}
-		lines.push(String::new());
-	}
+        for (column_index, cell_rc) in cells.iter().enumerate() {
+            let cell = cell_rc.get();
+            let value = match &*cell.col_type().map_err(ParseError::from)? {
+                DbsParser_ColumnType::String => {
+                    toml_edit::Value::from(cell.str_value().map_err(ParseError::from)?.as_str())
+                        .to_string()
+                }
+                DbsParser_ColumnType::Integer | DbsParser_ColumnType::Unknown(_) => {
+                    (*cell.raw_value().map_err(ParseError::from)?).to_string()
+                }
+            };
+            lines.push(format!("row_column_{} = {}", column_index, value));
+        }
+        lines.push(String::new());
+    }
 
-	if verbose {
-		println!("Generating TOML");
-	}
-	Ok(lines.join("\n"))
+    if verbose {
+        println!("Generating TOML");
+    }
+    Ok(lines.join("\n"))
 }
 
 /// Formats a DBS Kaitai error without inventing magic-number diagnostics.
-pub fn format_dbs_bin_to_toml_error(err: &ParseError, _path: &str, _verbose: bool, _uppercase: bool) -> String {
-	let kerr = match err {
-		ParseError::Kaitai(kerr) => kerr,
-		ParseError::KaitaiWithContext { err: kerr, .. } => kerr,
-	};
+pub fn format_dbs_bin_to_toml_error(
+    err: &ParseError,
+    _path: &str,
+    _verbose: bool,
+    _uppercase: bool,
+) -> String {
+    let kerr = match err {
+        ParseError::Kaitai(kerr) => kerr,
+        ParseError::KaitaiWithContext { err: kerr, .. } => kerr,
+    };
 
-	error_formatter::format_kaitai_error(kerr)
+    error_formatter::format_kaitai_error(kerr)
 }

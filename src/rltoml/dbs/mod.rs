@@ -1,5 +1,5 @@
-pub mod dbs_decompress;
 pub mod dbs_convert;
+pub mod dbs_decompress;
 pub mod dbs_formatter;
 pub mod dbs_parser;
 

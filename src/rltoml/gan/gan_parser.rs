@@ -25,8 +25,8 @@
 
 extern crate kaitai;
 use kaitai::*;
+use std::cell::{Cell, Ref, RefCell};
 use std::convert::{TryFrom, TryInto};
-use std::cell::{Ref, Cell, RefCell};
 use std::rc::{Rc, Weak};
 
 /**
@@ -59,15 +59,24 @@ impl KStruct for GanParser {
         let _rrc = self_rc._root.get_value().borrow().upgrade();
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
-        let t = Self::read_into::<_, GanParser_GanHeader>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
+        let t = Self::read_into::<_, GanParser_GanHeader>(
+            &*_io,
+            Some(self_rc._root.clone()),
+            Some(self_rc._self.clone()),
+        )?
+        .into();
         *self_rc.gan_header.borrow_mut() = t;
-        let t = Self::read_into::<_, GanParser_GanDataSection>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
+        let t = Self::read_into::<_, GanParser_GanDataSection>(
+            &*_io,
+            Some(self_rc._root.clone()),
+            Some(self_rc._self.clone()),
+        )?
+        .into();
         *self_rc.gan_data_section.borrow_mut() = t;
         Ok(())
     }
 }
-impl GanParser {
-}
+impl GanParser {}
 impl GanParser {
     pub fn gan_header(&self) -> Ref<'_, OptRc<GanParser_GanHeader>> {
         self.gan_header.borrow()
@@ -121,15 +130,16 @@ impl From<&GanParser_Frame> for i64 {
             GanParser_Frame::Alpha => 30104,
             GanParser_Frame::Z => 30105,
             GanParser_Frame::FrameEnd => 999999,
-            GanParser_Frame::Unknown(v) => v
+            GanParser_Frame::Unknown(v) => v,
         }
     }
 }
 
 impl Default for GanParser_Frame {
-    fn default() -> Self { GanParser_Frame::Unknown(0) }
+    fn default() -> Self {
+        GanParser_Frame::Unknown(0)
+    }
 }
-
 
 #[derive(Default, Debug, Clone)]
 pub struct GanParser_GanDataSection {
@@ -159,21 +169,28 @@ impl KStruct for GanParser_GanDataSection {
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
         *self_rc.data_section_marker.borrow_mut() = _io.read_u4le()?.into();
-        if !(((*self_rc.data_section_marker() as i32) == (20000 as i32))) {
-            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotEqual, src_path: "/types/gan_data_section/seq/0".to_string() }));
+        if !((*self_rc.data_section_marker() as i32) == (20000 as i32)) {
+            return Err(KError::ValidationFailed(ValidationFailedError {
+                kind: ValidationKind::NotEqual,
+                src_path: "/types/gan_data_section/seq/0".to_string(),
+            }));
         }
         *self_rc.num_sets.borrow_mut() = _io.read_u4le()?.into();
         *self_rc.sets.borrow_mut() = Vec::new();
         let l_sets = *self_rc.num_sets();
         for _i in 0..l_sets {
-            let t = Self::read_into::<_, GanParser_GanDataSection_AnimationSet>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
+            let t = Self::read_into::<_, GanParser_GanDataSection_AnimationSet>(
+                &*_io,
+                Some(self_rc._root.clone()),
+                Some(self_rc._self.clone()),
+            )?
+            .into();
             self_rc.sets.borrow_mut().push(t);
         }
         Ok(())
     }
 }
-impl GanParser_GanDataSection {
-}
+impl GanParser_GanDataSection {}
 impl GanParser_GanDataSection {
     pub fn data_section_marker(&self) -> Ref<'_, u32> {
         self.data_section_marker.borrow()
@@ -224,7 +241,12 @@ impl KStruct for GanParser_GanDataSection_AnimationFrame {
         {
             let mut _i = 0;
             while {
-                let t = Self::read_into::<_, GanParser_GanDataSection_FrameEntry>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
+                let t = Self::read_into::<_, GanParser_GanDataSection_FrameEntry>(
+                    &*_io,
+                    Some(self_rc._root.clone()),
+                    Some(self_rc._self.clone()),
+                )?
+                .into();
                 self_rc.entries.borrow_mut().push(t);
                 let _t_entries = self_rc.entries.borrow();
                 let _tmpa = _t_entries.last().unwrap();
@@ -236,8 +258,7 @@ impl KStruct for GanParser_GanDataSection_AnimationFrame {
         Ok(())
     }
 }
-impl GanParser_GanDataSection_AnimationFrame {
-}
+impl GanParser_GanDataSection_AnimationFrame {}
 impl GanParser_GanDataSection_AnimationFrame {
     pub fn entries(&self) -> Ref<'_, Vec<OptRc<GanParser_GanDataSection_FrameEntry>>> {
         self.entries.borrow()
@@ -277,24 +298,34 @@ impl KStruct for GanParser_GanDataSection_AnimationSet {
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
         *self_rc.set_marker.borrow_mut() = _io.read_u4le()?.into();
-        if !(((*self_rc.set_marker() as i32) == (30000 as i32))) {
-            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotEqual, src_path: "/types/gan_data_section/types/animation_set/seq/0".to_string() }));
+        if !((*self_rc.set_marker() as i32) == (30000 as i32)) {
+            return Err(KError::ValidationFailed(ValidationFailedError {
+                kind: ValidationKind::NotEqual,
+                src_path: "/types/gan_data_section/types/animation_set/seq/0".to_string(),
+            }));
         }
         *self_rc.num_frames.borrow_mut() = _io.read_u4le()?.into();
-        if !(((*self_rc.num_frames() as u32) >= (1 as u32))) {
-            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::LessThan, src_path: "/types/gan_data_section/types/animation_set/seq/1".to_string() }));
+        if !((*self_rc.num_frames() as u32) >= (1 as u32)) {
+            return Err(KError::ValidationFailed(ValidationFailedError {
+                kind: ValidationKind::LessThan,
+                src_path: "/types/gan_data_section/types/animation_set/seq/1".to_string(),
+            }));
         }
         *self_rc.frames.borrow_mut() = Vec::new();
         let l_frames = *self_rc.num_frames();
         for _i in 0..l_frames {
-            let t = Self::read_into::<_, GanParser_GanDataSection_AnimationFrame>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
+            let t = Self::read_into::<_, GanParser_GanDataSection_AnimationFrame>(
+                &*_io,
+                Some(self_rc._root.clone()),
+                Some(self_rc._self.clone()),
+            )?
+            .into();
             self_rc.frames.borrow_mut().push(t);
         }
         Ok(())
     }
 }
-impl GanParser_GanDataSection_AnimationSet {
-}
+impl GanParser_GanDataSection_AnimationSet {}
 impl GanParser_GanDataSection_AnimationSet {
     pub fn set_marker(&self) -> Ref<'_, u32> {
         self.set_marker.borrow()
@@ -343,8 +374,18 @@ impl KStruct for GanParser_GanDataSection_FrameEntry {
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
         *self_rc.tag.borrow_mut() = (_io.read_u4le()? as i64).try_into()?;
-        if !( ((*self_rc.tag() == GanParser_Frame::Pattern) || (*self_rc.tag() == GanParser_Frame::X) || (*self_rc.tag() == GanParser_Frame::Y) || (*self_rc.tag() == GanParser_Frame::Time) || (*self_rc.tag() == GanParser_Frame::Alpha) || (*self_rc.tag() == GanParser_Frame::Z) || (*self_rc.tag() == GanParser_Frame::FrameEnd)) ) {
-            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotAnyOf, src_path: "/types/gan_data_section/types/frame_entry/seq/0".to_string() }));
+        if !((*self_rc.tag() == GanParser_Frame::Pattern)
+            || (*self_rc.tag() == GanParser_Frame::X)
+            || (*self_rc.tag() == GanParser_Frame::Y)
+            || (*self_rc.tag() == GanParser_Frame::Time)
+            || (*self_rc.tag() == GanParser_Frame::Alpha)
+            || (*self_rc.tag() == GanParser_Frame::Z)
+            || (*self_rc.tag() == GanParser_Frame::FrameEnd))
+        {
+            return Err(KError::ValidationFailed(ValidationFailedError {
+                kind: ValidationKind::NotAnyOf,
+                src_path: "/types/gan_data_section/types/frame_entry/seq/0".to_string(),
+            }));
         }
         if *self_rc.tag() != GanParser_Frame::FrameEnd {
             *self_rc.value.borrow_mut() = _io.read_s4le()?.into();
@@ -352,8 +393,7 @@ impl KStruct for GanParser_GanDataSection_FrameEntry {
         Ok(())
     }
 }
-impl GanParser_GanDataSection_FrameEntry {
-}
+impl GanParser_GanDataSection_FrameEntry {}
 impl GanParser_GanDataSection_FrameEntry {
     pub fn tag(&self) -> Ref<'_, GanParser_Frame> {
         self.tag.borrow()
@@ -400,24 +440,35 @@ impl KStruct for GanParser_GanHeader {
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
         *self_rc.magic_1.borrow_mut() = _io.read_u4le()?.into();
-        if !(((*self_rc.magic_1() as i32) == (10000 as i32))) {
-            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotEqual, src_path: "/types/gan_header/seq/0".to_string() }));
+        if !((*self_rc.magic_1() as i32) == (10000 as i32)) {
+            return Err(KError::ValidationFailed(ValidationFailedError {
+                kind: ValidationKind::NotEqual,
+                src_path: "/types/gan_header/seq/0".to_string(),
+            }));
         }
         *self_rc.magic_2.borrow_mut() = _io.read_u4le()?.into();
-        if !(((*self_rc.magic_2() as i32) == (10000 as i32))) {
-            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotEqual, src_path: "/types/gan_header/seq/1".to_string() }));
+        if !((*self_rc.magic_2() as i32) == (10000 as i32)) {
+            return Err(KError::ValidationFailed(ValidationFailedError {
+                kind: ValidationKind::NotEqual,
+                src_path: "/types/gan_header/seq/1".to_string(),
+            }));
         }
         *self_rc.magic_3.borrow_mut() = _io.read_u4le()?.into();
-        if !(((*self_rc.magic_3() as i32) == (10100 as i32))) {
-            return Err(KError::ValidationFailed(ValidationFailedError { kind: ValidationKind::NotEqual, src_path: "/types/gan_header/seq/2".to_string() }));
+        if !((*self_rc.magic_3() as i32) == (10100 as i32)) {
+            return Err(KError::ValidationFailed(ValidationFailedError {
+                kind: ValidationKind::NotEqual,
+                src_path: "/types/gan_header/seq/2".to_string(),
+            }));
         }
         *self_rc.bitmap_name_len.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.bitmap_name.borrow_mut() = bytes_to_str(&_io.read_bytes_term(0, false, true, true)?.into(), "Shift_JIS")?;
+        *self_rc.bitmap_name.borrow_mut() = bytes_to_str(
+            &_io.read_bytes_term(0, false, true, true)?.into(),
+            "Shift_JIS",
+        )?;
         Ok(())
     }
 }
-impl GanParser_GanHeader {
-}
+impl GanParser_GanHeader {}
 impl GanParser_GanHeader {
     pub fn magic_1(&self) -> Ref<'_, u32> {
         self.magic_1.borrow()
