@@ -10,6 +10,7 @@ indoc = "2.0.7"
 kaitai = { git = "https://github.com/kaitai-io/kaitai_struct_rust_runtime.git", tag = "v0.11.0" }
 toml_edit = { version = "0.25.12", features = ["parse"] }
 thiserror = "2.0.18"
+encoding_rs = "0.8.35"
 
 [[bin]]
 name = "rltoml"
