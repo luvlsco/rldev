@@ -24,7 +24,6 @@ mod binary_reader;
 mod dbs;
 mod error_formatter;
 mod gan;
-mod toml_formatter;
 
 use rldev::common::filesystem::get_file_name;
 use rldev::common::options::OutputRequest;

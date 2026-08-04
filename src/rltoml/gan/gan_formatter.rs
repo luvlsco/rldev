@@ -20,6 +20,7 @@
 */
 
 use kaitai::{KError, KStruct, OptRc};
+use toml_edit::{InlineTable, Value};
 
 use super::FrameAttrs;
 use super::gan_parser::GanParser;
@@ -27,7 +28,6 @@ use super::gan_parser::GanParser_Frame as GanFrame;
 use super::gan_parser::GanParser_GanDataSection_AnimationFrame as GanAnimFrame;
 
 use crate::error_formatter::{self, AnyOfSpec, MagicSpec, ParseError, ParseResult};
-use crate::toml_formatter::{self, TomlFrameAttrs};
 
 impl FrameAttrs {
     /// Iterates all frame attribute (name, value) pairs, including unset fields as `None`.
@@ -67,9 +67,7 @@ impl FrameAttrs {
             GanFrame::FrameEnd | GanFrame::Unknown(_) => (),
         }
     }
-}
 
-impl TomlFrameAttrs for FrameAttrs {
     /// Converts set attributes into key-value pairs for inline table output, skipping `None` fields.
     fn to_inline_table_fields(&self) -> Vec<(String, String)> {
         self.iter_fields()
@@ -119,6 +117,7 @@ pub fn gan_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
     if verbose {
         println!("Reading GAN header");
     }
+
     let gan = parse_gan(path)?;
     let header = gan.gan_header().get();
     let data_section = gan.gan_data_section().get();
@@ -142,16 +141,16 @@ pub fn gan_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
         let defaults = FrameAttrs::common_attrs(&frames);
 
         lines.push("[[gan.set]]".to_string());
-        lines.extend(toml_formatter::write_block_fields(&defaults));
+        for (name, val) in defaults.to_inline_table_fields() {
+            lines.push(format!("{} = {}", name, val));
+        }
+
         lines.push("frames = [".to_string());
 
         for frame in frames {
             let diff = frame.diff_from(&defaults);
             let fields = diff.to_inline_table_fields();
-            lines.push(format!(
-                "  {},",
-                toml_formatter::build_inline_table(&fields)
-            ));
+            lines.push(format!("  {},", build_inline_table(&fields)));
         }
 
         lines.push("]".to_string());
@@ -176,9 +175,11 @@ pub fn format_gan_to_toml_error(
         ParseError::Kaitai(k) => k,
         ParseError::KaitaiWithContext { err: k, .. } => k,
     };
+
     let KError::ValidationFailed(validation) = kerr else {
         return error_formatter::format_kaitai_error(kerr);
     };
+
     let src = validation.src_path.as_str();
     let kind = &validation.kind;
     let context = err.read_context();
@@ -307,4 +308,21 @@ fn diff_opt(a: Option<i32>, b: Option<i32>) -> Option<i32> {
 /// Returns `a` if it equals `b`, otherwise `None`.
 fn keep_if_eq(a: Option<i32>, b: Option<i32>) -> Option<i32> {
     a.filter(|v| Some(*v) == b)
+}
+
+/// Builds a TOML inline table from key-value pairs, parsing each value.
+fn build_inline_table(fields: &[(String, String)]) -> InlineTable {
+    let mut table = InlineTable::new();
+    for (key, value) in fields {
+        let parsed_value: Value = value.parse().unwrap_or_else(|_| {
+            let toml_str = format!("x = \"{}\"", value.replace('"', "\\\""));
+            toml_str
+                .parse::<toml_edit::Item>()
+                .ok()
+                .and_then(|item| item.as_value().cloned())
+                .unwrap_or_else(|| "\"\"".parse().unwrap())
+        });
+        table.insert(key, parsed_value);
+    }
+    table
 }
