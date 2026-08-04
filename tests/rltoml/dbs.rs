@@ -19,11 +19,7 @@
 use std::path::{Path, PathBuf};
 
 fn fixture(name: &str) -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("src")
-        .join("rltoml")
-        .join("dbs")
-        .join(name)
+    crate::common::fixture("rltoml/dbs", name)
 }
 
 fn run(input: &Path, args: &[&str]) -> (bool, String, String) {
