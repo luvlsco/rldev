@@ -26,17 +26,11 @@ use super::FrameAttrs;
 use super::gan_parser::GanParser_Frame as GanFrame;
 use crate::error_formatter;
 
-/// A frame parsed from TOML, containing override values for set defaults.
-#[derive(Default, Debug, Clone)]
-struct TomlFrame {
-    params: FrameAttrs,
-}
-
 /// A set of animation frames with shared default attribute values.
 #[derive(Default, Debug, Clone)]
 struct TomlSet {
     defaults: FrameAttrs,
-    frames: Vec<TomlFrame>,
+    frames: Vec<FrameAttrs>,
 }
 
 /// The complete TOML representation of a GAN file.
@@ -133,19 +127,19 @@ pub fn toml_to_gan(toml_path: &str, gan_path: &str, verbose: bool) -> Result<(),
 /// Parses a single frame from a TOML inline table.
 fn parse_frame_from_inline_table(
     table: &toml_edit::InlineTable,
-) -> Result<TomlFrame, GanWriteError> {
-    let mut frame = TomlFrame::default();
+) -> Result<FrameAttrs, GanWriteError> {
+    let mut attrs = FrameAttrs::default();
     for (key, value) in table.iter() {
         let v = value.as_integer().ok_or_else(|| {
             GanWriteError::InvalidStructure(format!("frame field '{}' must be an integer", key))
         })?;
         match key {
-            "pattern" => frame.params.pattern = Some(v as i32),
-            "x" => frame.params.x = Some(v as i32),
-            "y" => frame.params.y = Some(v as i32),
-            "time" => frame.params.time = Some(v as i32),
-            "alpha" => frame.params.alpha = Some(v as i32),
-            "z" => frame.params.z = Some(v as i32),
+            "pattern" => attrs.pattern = Some(v as i32),
+            "x" => attrs.x = Some(v as i32),
+            "y" => attrs.y = Some(v as i32),
+            "time" => attrs.time = Some(v as i32),
+            "alpha" => attrs.alpha = Some(v as i32),
+            "z" => attrs.z = Some(v as i32),
             _ => {
                 return Err(GanWriteError::InvalidStructure(format!(
                     "unknown frame field '{}'",
@@ -154,37 +148,19 @@ fn parse_frame_from_inline_table(
             }
         }
     }
-
-    Ok(frame)
+    Ok(attrs)
 }
 
 /// Parses a set table from TOML, including default attributes and all frames.
+#[rustfmt::skip]
 fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteError> {
     let mut set = TomlSet::default();
-    set.defaults.pattern = table
-        .get("pattern")
-        .and_then(|i| i.as_integer())
-        .map(|v| v as i32);
-    set.defaults.x = table
-        .get("x")
-        .and_then(|i| i.as_integer())
-        .map(|v| v as i32);
-    set.defaults.y = table
-        .get("y")
-        .and_then(|i| i.as_integer())
-        .map(|v| v as i32);
-    set.defaults.time = table
-        .get("time")
-        .and_then(|i| i.as_integer())
-        .map(|v| v as i32);
-    set.defaults.alpha = table
-        .get("alpha")
-        .and_then(|i| i.as_integer())
-        .map(|v| v as i32);
-    set.defaults.z = table
-        .get("z")
-        .and_then(|i| i.as_integer())
-        .map(|v| v as i32);
+    set.defaults.pattern = table.get("pattern").and_then(|i| i.as_integer()).map(|v| v as i32);
+    set.defaults.x = table.get("x").and_then(|i| i.as_integer()).map(|v| v as i32);
+    set.defaults.y = table.get("y").and_then(|i| i.as_integer()).map(|v| v as i32);
+    set.defaults.time = table.get("time").and_then(|i| i.as_integer()).map(|v| v as i32);
+    set.defaults.alpha = table.get("alpha").and_then(|i| i.as_integer()).map(|v| v as i32);
+    set.defaults.z = table.get("z").and_then(|i| i.as_integer()).map(|v| v as i32);
 
     let frames_item = table
         .get("frames")
@@ -250,36 +226,15 @@ fn parse_toml_gan(
 
 /// Writes a single frame's tag-value pairs to the binary output.
 /// Uses set defaults for any attributes not specified in the frame.
-fn write_frame(
-    oc: &mut BufWriter<File>,
-    frame: &TomlFrame,
-    defaults: &FrameAttrs,
-) -> Result<(), GanWriteError> {
+#[rustfmt::skip]
+fn write_frame(oc: &mut BufWriter<File>, frame: &FrameAttrs, defaults: &FrameAttrs) -> Result<(), GanWriteError> {
     for (tag, value) in [
-        (
-            i64::from(&GanFrame::Pattern) as i32,
-            frame.params.pattern.or(defaults.pattern),
-        ),
-        (
-            i64::from(&GanFrame::X) as i32,
-            frame.params.x.or(defaults.x),
-        ),
-        (
-            i64::from(&GanFrame::Y) as i32,
-            frame.params.y.or(defaults.y),
-        ),
-        (
-            i64::from(&GanFrame::Time) as i32,
-            frame.params.time.or(defaults.time),
-        ),
-        (
-            i64::from(&GanFrame::Alpha) as i32,
-            frame.params.alpha.or(defaults.alpha),
-        ),
-        (
-            i64::from(&GanFrame::Z) as i32,
-            frame.params.z.or(defaults.z),
-        ),
+        (i64::from(&GanFrame::Pattern) as i32, frame.pattern.or(defaults.pattern)),
+        (i64::from(&GanFrame::X) as i32, frame.x.or(defaults.x)),
+        (i64::from(&GanFrame::Y) as i32, frame.y.or(defaults.y)),
+        (i64::from(&GanFrame::Time) as i32, frame.time.or(defaults.time)),
+        (i64::from(&GanFrame::Alpha) as i32, frame.alpha.or(defaults.alpha)),
+        (i64::from(&GanFrame::Z) as i32, frame.z.or(defaults.z)),
     ] {
         if let Some(v) = value {
             oc.write_all(&tag.to_le_bytes())?;
