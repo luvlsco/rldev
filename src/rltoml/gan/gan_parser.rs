@@ -22,6 +22,7 @@
 #![allow(irrefutable_let_patterns)]
 #![allow(unused_comparisons)]
 #![allow(dead_code)]
+#![allow(clippy::all)]
 
 extern crate kaitai;
 use kaitai::*;

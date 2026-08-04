@@ -22,7 +22,7 @@
 #![allow(irrefutable_let_patterns)]
 #![allow(unused_comparisons)]
 #![allow(dead_code)]
-#![allow(unused_parens)]
+#![allow(clippy::all)]
 
 extern crate kaitai;
 use kaitai::*;
@@ -206,7 +206,7 @@ impl DbsParser {
         let _pos = _io.pos();
         _io.seek(*self.value_list_offset() as usize)?;
         *self.values.borrow_mut() = Vec::new();
-        let l_values = ((*self.num_row_ids() as u32) * (*self.num_types() as u32));
+        let l_values = (*self.num_row_ids() as u32) * (*self.num_types() as u32);
         for _i in 0..l_values {
             self.values.borrow_mut().push(_io.read_u4le()?.into());
         }
