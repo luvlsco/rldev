@@ -1,7 +1,7 @@
 use clap::Command;
 
 /// Prints a trailing blank line then exits, keeping terminal output clean.
-pub fn quit(code: i32) -> ! {
+pub fn exit(code: i32) -> ! {
     eprintln!();
     std::process::exit(code);
 }

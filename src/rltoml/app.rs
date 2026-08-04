@@ -106,7 +106,7 @@ pub fn parse_args() -> Args {
                 "{}",
                 rldev::common::cli::format_output(&formatted.to_string())
             );
-            rldev::common::cli::quit(formatted.exit_code());
+            rldev::common::cli::exit(formatted.exit_code());
         }
     }
 }

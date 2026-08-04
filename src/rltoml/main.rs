@@ -30,11 +30,13 @@ use rldev::common::options::OutputRequest;
 
 fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
     let file_name = path.file_name()?.to_str()?;
+    // .gan file
     if file_name.ends_with(".gan") {
         Some(path.with_extension("").with_extension("gan.toml"))
     } else if file_name.ends_with(".gan.toml") {
         Some(path.with_extension("gan"))
 
+    // .dbs file
     } else if file_name.ends_with(".dbs") {
         Some(path.with_extension("").with_extension("dbs.bin"))
     } else if file_name.ends_with(".dbs.bin") {
@@ -42,6 +44,7 @@ fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
     } else if file_name.ends_with(".dbs.bin.toml") {
         Some(path.with_extension("").with_extension(""))
 
+    // Unknown file
     } else {
         None
     }
@@ -50,7 +53,7 @@ fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
 fn derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
     get_file_type(input).unwrap_or_else(|| {
         eprintln!("Unknown file type: {}", input.display());
-        rldev::common::cli::quit(1);
+        rldev::common::cli::exit(1);
     })
 }
 
@@ -68,7 +71,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                     get_file_name(out_path),
                     gan::format_gan_to_toml_error(&err, file, verbose, uppercase)
                 );
-                rldev::common::cli::quit(1);
+                rldev::common::cli::exit(1);
             });
         if let Err(err) = std::fs::write(out_path, toml) {
             eprintln!(
@@ -76,7 +79,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                 get_file_name(out_path),
                 error_formatter::format_io_error(&err)
             );
-            rldev::common::cli::quit(1);
+            rldev::common::cli::exit(1);
         }
 
     // .gan.toml
@@ -88,7 +91,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                 get_file_name(out_path),
                 gan::format_toml_to_gan_error(&err, verbose)
             );
-            rldev::common::cli::quit(1);
+            rldev::common::cli::exit(1);
         });
 
     // .dbs.bin.toml
@@ -100,7 +103,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                 get_file_name(out_path),
                 dbs::format_toml_to_dbs_error(&err, verbose)
             );
-            rldev::common::cli::quit(1);
+            rldev::common::cli::exit(1);
         });
 
     // .dbs.bin
@@ -113,7 +116,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                     get_file_name(out_path),
                     dbs::format_dbs_bin_to_toml_error(&err, file, verbose, uppercase)
                 );
-                rldev::common::cli::quit(1);
+                rldev::common::cli::exit(1);
             },
         );
         if let Err(err) = std::fs::write(out_path, toml) {
@@ -122,7 +125,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                 get_file_name(out_path),
                 error_formatter::format_io_error(&err)
             );
-            rldev::common::cli::quit(1);
+            rldev::common::cli::exit(1);
         }
 
     // .dbs
@@ -138,7 +141,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                 get_file_name(out_path),
                 message
             );
-            rldev::common::cli::quit(1);
+            rldev::common::cli::exit(1);
         });
     }
     println!("Successfully converted: {}", get_file_name(out_path));
@@ -150,12 +153,12 @@ fn main() {
 
     if args.version {
         app::Args::print_version();
-        rldev::common::cli::quit(0);
+        rldev::common::cli::exit(0);
     }
 
     if args.info {
         app::Args::print_info();
-        rldev::common::cli::quit(0);
+        rldev::common::cli::exit(0);
     }
 
     // Arg: --help
@@ -164,7 +167,7 @@ fn main() {
     if args.help || raw_args.len() == 1 || args.files.is_empty() {
         let cmd = <app::Args as clap::CommandFactory>::command();
         rldev::common::cli::print_help(cmd);
-        rldev::common::cli::quit(0);
+        rldev::common::cli::exit(0);
     }
 
     let verbose = args.verbose;
@@ -176,7 +179,7 @@ fn main() {
     for path in &inputs {
         if get_file_type(path).is_none() {
             eprintln!("Unknown file type: {}", path.display());
-            rldev::common::cli::quit(1);
+            rldev::common::cli::exit(1);
         }
     }
 
@@ -224,5 +227,5 @@ fn main() {
     for (file, out_path) in args.files.iter().zip(out_paths.iter()) {
         convert_single(file, out_path, verbose, uppercase);
     }
-    rldev::common::cli::quit(0);
+    rldev::common::cli::exit(0);
 }
