@@ -19,7 +19,6 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-use byteorder::{LittleEndian, WriteBytesExt};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 
@@ -79,9 +78,11 @@ pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
         if !result.is_empty() {
             result.push('\n');
         }
+
         if line.trim().is_empty() {
             continue;
         }
+
         last_line = line;
         result.push_str(line);
     }
@@ -90,6 +91,7 @@ pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
         if !last_line.is_empty() {
             return format!("{}.", last_line);
         }
+
         return last_line.to_string();
     }
 
@@ -103,6 +105,7 @@ pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
         if !result.is_empty() && !result.ends_with('\n') {
             result.push('\n');
         }
+
         result.push_str(&fixed);
     }
 
@@ -123,6 +126,7 @@ pub fn toml_to_gan(toml_path: &str, gan_path: &str, verbose: bool) -> Result<(),
     let mut oc = BufWriter::new(file);
     write_gan(&mut oc, &gan, verbose)?;
     oc.flush()?;
+
     Ok(())
 }
 
@@ -150,6 +154,7 @@ fn parse_frame_from_inline_table(
             }
         }
     }
+
     Ok(frame)
 }
 
@@ -277,21 +282,23 @@ fn write_frame(
         ),
     ] {
         if let Some(v) = value {
-            oc.write_i32::<LittleEndian>(tag)?;
-            oc.write_i32::<LittleEndian>(v)?;
+            oc.write_all(&tag.to_le_bytes())?;
+            oc.write_all(&v.to_le_bytes())?;
         }
     }
-    oc.write_i32::<LittleEndian>(i64::from(&GanFrame::FrameEnd) as i32)?;
+    oc.write_all(&(i64::from(&GanFrame::FrameEnd) as i32).to_le_bytes())?;
+
     Ok(())
 }
 
 /// Writes a set marker, frame count, and all frames in the set.
 fn write_set(oc: &mut BufWriter<File>, set: &TomlSet) -> Result<(), GanWriteError> {
-    oc.write_i32::<LittleEndian>(30_000)?;
-    oc.write_u32::<LittleEndian>(set.frames.len() as u32)?;
+    oc.write_all(&30_000i32.to_le_bytes())?;
+    oc.write_all(&(set.frames.len() as u32).to_le_bytes())?;
     for frame in &set.frames {
         write_frame(oc, frame, &set.defaults)?;
     }
+
     Ok(())
 }
 
@@ -300,20 +307,24 @@ fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan, verbose: bool) -> Result<(
     if verbose {
         println!("Writing GAN header");
     }
-    oc.write_i32::<LittleEndian>(10_000)?;
-    oc.write_i32::<LittleEndian>(10_000)?;
-    oc.write_i32::<LittleEndian>(10_100)?;
+
+    oc.write_all(&10_000i32.to_le_bytes())?;
+    oc.write_all(&10_000i32.to_le_bytes())?;
+    oc.write_all(&10_100i32.to_le_bytes())?;
     let bitmap_bytes = gan.bitmap.as_bytes();
-    oc.write_u32::<LittleEndian>(bitmap_bytes.len() as u32 + 1)?;
+    oc.write_all(&(bitmap_bytes.len() as u32 + 1).to_le_bytes())?;
     oc.write_all(bitmap_bytes)?;
-    oc.write_u8(0)?;
-    oc.write_i32::<LittleEndian>(20_000)?;
-    oc.write_u32::<LittleEndian>(gan.sets.len() as u32)?;
+    oc.write_all(&[0])?;
+    oc.write_all(&20_000i32.to_le_bytes())?;
+    oc.write_all(&(gan.sets.len() as u32).to_le_bytes())?;
+
     if verbose {
         println!("Writing GAN set data");
     }
+
     for set in &gan.sets {
         write_set(oc, set)?;
     }
+
     Ok(())
 }
