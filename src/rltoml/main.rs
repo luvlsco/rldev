@@ -30,37 +30,28 @@ use rldev::common::options::OutputRequest;
 
 fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
     let file_name = path.file_name()?.to_str()?;
-    if file_name.ends_with(".gan.toml") {
-        Some(path.with_extension("").with_extension("gan"))
-    } else if file_name.ends_with(".gan") {
-        Some(path.with_extension("gan.toml"))
+    if file_name.ends_with(".gan") {
+        Some(path.with_extension("").with_extension("gan.toml"))
+    } else if file_name.ends_with(".gan.toml") {
+        Some(path.with_extension("gan"))
+
+    } else if file_name.ends_with(".dbs") {
+        Some(path.with_extension("").with_extension("dbs.bin"))
+    } else if file_name.ends_with(".dbs.bin") {
+        Some(path.with_extension("dbs.bin.toml"))
     } else if file_name.ends_with(".dbs.bin.toml") {
         Some(path.with_extension("").with_extension(""))
-    } else if file_name.ends_with(".dbs.bin") {
-        Some(path.with_extension("bin.toml"))
-    } else if file_name.ends_with(".dbs") {
-        Some(path.with_extension("dbs.bin"))
+
     } else {
         None
     }
 }
 
 fn derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
-    let file_name = input.file_name().and_then(|n| n.to_str()).unwrap_or("");
-    if file_name.ends_with(".gan.toml") {
-        input.with_extension("").with_extension("gan")
-    } else if file_name.ends_with(".gan") {
-        input.with_extension("gan.toml")
-    } else if file_name.ends_with(".dbs.bin.toml") {
-        input.with_extension("").with_extension("")
-    } else if file_name.ends_with(".dbs.bin") {
-        input.with_extension("bin.toml")
-    } else if file_name.ends_with(".dbs") {
-        input.with_extension("dbs.bin")
-    } else {
+    get_file_type(input).unwrap_or_else(|| {
         eprintln!("Unknown file type: {}", input.display());
         rldev::common::cli::quit(1);
-    }
+    })
 }
 
 fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, uppercase: bool) {
