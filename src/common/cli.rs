@@ -13,32 +13,28 @@ pub fn print_help(cmd: Command) {
     cmd.bin_name(bin_name).print_help().unwrap();
 }
 
-/// Capitalizes the first character and ensures the line ends with a period.
-/// Strips the last line if non-empty.
-/// Skips the period when the result is multi-line or already ends with ':'.
+/// Capitalizes the first character, drops the last line of multi-line input,
+/// and ensures the line ends with a period (skipped when multi-line or already ending with ':').
 pub fn format_output(text: &str) -> String {
     let text = text.trim_end();
-    let content = if let Some((before, last)) = text.rsplit_once('\n') {
-        if last.trim().is_empty() {
-            text
-        } else {
-            before.trim_end()
-        }
-    } else {
-        text
-    };
+    let content = text
+        .rsplit_once('\n')
+        .map_or(text, |(before, _)| before.trim_end());
 
     if content.is_empty() {
         return String::new();
     }
 
     let mut chars = content.chars();
-    let first = chars.next().unwrap();
-    let result = format!("{}{}", first.to_uppercase(), chars.collect::<String>());
+    let result = format!(
+        "{}{}",
+        chars.next().unwrap().to_uppercase(),
+        chars.as_str()
+    );
 
     if result.contains('\n') || result.ends_with(':') {
         result
     } else {
-        format!("{}.", result)
+        format!("{result}.")
     }
 }
