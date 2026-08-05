@@ -126,19 +126,17 @@ pub fn read_u4_le(path: &str, offset: usize) -> KResult<(i64, [u8; 4])> {
 
 /// Formats bytes as space-separated hex values.
 pub fn format_bytes_hex(bytes: &[u8], uppercase: bool) -> String {
-    if !uppercase {
-        bytes
-            .iter()
-            .map(|b| format!("{:02x}", b))
-            .collect::<Vec<_>>()
-            .join(" ")
-    } else {
-        bytes
-            .iter()
-            .map(|b| format!("{:02X}", b))
-            .collect::<Vec<_>>()
-            .join(" ")
-    }
+    bytes
+        .iter()
+        .map(|b| {
+            if uppercase {
+                format!("{:02X}", b)
+            } else {
+                format!("{:02x}", b)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// Formats a u32 as hex with optional uppercase ("0x1a2b" / "0x1A2B").
@@ -152,10 +150,14 @@ pub fn format_hex_u32(value: u32, uppercase: bool) -> String {
 
 /// Formats a u32 as zero-padded hex ("0x0000abcd" / "0x0000ABCD").
 pub fn format_hex_u32_padded(value: u32, width: usize, uppercase: bool) -> String {
-    if !uppercase {
-        format!("0x{:0width$x}", value, width = width)
-    } else {
+    format_hex(value, width, uppercase)
+}
+
+fn format_hex(value: u32, width: usize, uppercase: bool) -> String {
+    if uppercase {
         format!("0x{:0width$X}", value, width = width)
+    } else {
+        format!("0x{:0width$x}", value, width = width)
     }
 }
 
