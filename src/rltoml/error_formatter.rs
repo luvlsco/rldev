@@ -194,21 +194,25 @@ fn le_bytes(value: i32) -> [u8; 4] {
 /// Translates a raw Kaitai Error into a human-readable message.
 fn format_kaitai_error(err: &kaitai::KError) -> String {
     use kaitai::KError;
-    match err {
-        KError::IoError { .. } => "cannot read file: Input/output error.".to_string(),
-        KError::Eof { requested, available } => format!("file is truncated (expected {} bytes, found {}).", requested, available),
-        KError::NoTerminatorFound => "expected string terminator not found.".to_string(),
-        KError::EmptyIterator => "expected data but found none.".to_string(),
-        KError::UnknownEncoding { name } => format!("unknown encoding: {}.", name),
-        KError::ReadBitsTooLarge { requested } => format!("read bits too large ({}).", requested),
-        KError::MissingRoot | KError::MissingParent => "internal error: missing reference.".to_string(),
+    let message = match err {
+        KError::IoError { .. } => "cannot read file: input/output error".to_string(),
+        KError::Eof { requested, available } => format!(
+            "file is truncated (expected {} bytes, found {})",
+            requested, available
+        ),
+        KError::NoTerminatorFound => "expected string terminator not found".to_string(),
+        KError::EmptyIterator => "expected data but found none".to_string(),
+        KError::UnknownEncoding { name } => format!("unknown encoding: {}", name),
+        KError::ReadBitsTooLarge { requested } => format!("read bits too large ({})", requested),
+        KError::MissingRoot | KError::MissingParent => "internal error: missing reference".to_string(),
         KError::BytesDecodingError { msg } => {
-            format!("bytes decoding error: {}.", msg.trim_end_matches('.'))
+            format!("bytes decoding error: {}", msg.trim_end_matches('.'))
         }
-        KError::CastError => "internal cast error.".to_string(),
-        KError::UndecidedEndianness { .. } => "internal error: undecided endianness.".to_string(),
-        _ => "an unknown error occurred.".to_string(),
-    }
+        KError::CastError => "internal cast error".to_string(),
+        KError::UndecidedEndianness { .. } => "internal error: undecided endianness".to_string(),
+        _ => "an unknown error occurred".to_string(),
+    };
+    format!("{message}.")
 }
 
 /// Translates a parse error (Kaitai with or without read context) into a human-readable message.
@@ -227,7 +231,7 @@ pub fn format_write_error(msg: &str, verbose: bool) -> String {
         return msg
             .lines()
             .next()
-            .map(|l| format!("{}.", l.trim()))
+            .map(|l| format!("{}.", l.trim().trim_end_matches('.')))
             .unwrap_or_else(|| msg.to_string());
     }
 
@@ -248,7 +252,7 @@ pub fn format_write_error(msg: &str, verbose: bool) -> String {
 
     if !result.contains('\n') {
         if !last_line.is_empty() {
-            return format!("{}.", last_line);
+            return format!("{}.", last_line.trim_end_matches('.'));
         }
 
         return last_line.to_string();
@@ -271,39 +275,31 @@ pub fn format_write_error(msg: &str, verbose: bool) -> String {
     result
 }
 
-/// Formats an I/O error with a POSIX-like English description.
+/// Formats an I/O error with a lowercase English description.
 pub fn format_io_error(err: &std::io::Error) -> String {
     let message = match err.kind() {
-        std::io::ErrorKind::NotFound => "No such file or directory",
-        std::io::ErrorKind::PermissionDenied => "Permission denied",
-        std::io::ErrorKind::AlreadyExists => "File exists",
-        std::io::ErrorKind::BrokenPipe => "Broken pipe",
-        std::io::ErrorKind::WouldBlock => "Resource temporarily unavailable",
-        std::io::ErrorKind::NotADirectory => "Not a directory",
-        std::io::ErrorKind::IsADirectory => "Is a directory",
-        std::io::ErrorKind::DirectoryNotEmpty => "Directory not empty",
-        std::io::ErrorKind::ReadOnlyFilesystem => "Read-only file system",
-        std::io::ErrorKind::InvalidInput => "Invalid argument",
-        std::io::ErrorKind::InvalidData => "Invalid data",
-        std::io::ErrorKind::TimedOut => "Connection timed out",
-        std::io::ErrorKind::WriteZero => "No space left on device",
-        std::io::ErrorKind::StorageFull => "No space left on device",
-        std::io::ErrorKind::NotSeekable => "Illegal seek",
-        std::io::ErrorKind::QuotaExceeded => "Disk quota exceeded",
-        std::io::ErrorKind::FileTooLarge => "File too large",
-        std::io::ErrorKind::ResourceBusy | std::io::ErrorKind::ExecutableFileBusy => "Device or resource busy",
-        std::io::ErrorKind::Deadlock => "Resource deadlock avoided",
-        std::io::ErrorKind::CrossesDevices => "Invalid cross-device link",
-        std::io::ErrorKind::TooManyLinks => "Too many links",
-        std::io::ErrorKind::Interrupted => "Interrupted system call",
-        std::io::ErrorKind::Unsupported => "Operation not supported",
-        std::io::ErrorKind::UnexpectedEof => "Unexpected end of file",
-        std::io::ErrorKind::OutOfMemory => "Cannot allocate memory",
-        _ => "Input/output error",
+        std::io::ErrorKind::NotFound => "no such file or directory",
+        std::io::ErrorKind::PermissionDenied => "permission denied",
+        std::io::ErrorKind::AlreadyExists => "file exists",
+        std::io::ErrorKind::BrokenPipe => "broken pipe",
+        std::io::ErrorKind::WouldBlock => "resource temporarily unavailable",
+        std::io::ErrorKind::NotADirectory => "not a directory",
+        std::io::ErrorKind::IsADirectory => "is a directory",
+        std::io::ErrorKind::DirectoryNotEmpty => "directory not empty",
+        std::io::ErrorKind::ReadOnlyFilesystem => "read-only file system",
+        std::io::ErrorKind::InvalidInput => "invalid argument",
+        std::io::ErrorKind::InvalidData => "invalid data",
+        std::io::ErrorKind::TimedOut => "connection timed out",
+        std::io::ErrorKind::Interrupted => "interrupted system call",
+        std::io::ErrorKind::WriteZero | std::io::ErrorKind::StorageFull => "no space left on device",
+        std::io::ErrorKind::UnexpectedEof => "unexpected end of file",
+        std::io::ErrorKind::Unsupported => "operation not supported",
+        std::io::ErrorKind::OutOfMemory => "cannot allocate memory",
+        _ => "input/output error",
     };
 
     match err.raw_os_error() {
-        Some(code) => format!("{} (os error {})", message, code),
-        None => message.to_string(),
+        Some(code) => format!("{} (os error {}).", message, code),
+        None => format!("{}.", message),
     }
 }
