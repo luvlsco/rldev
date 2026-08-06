@@ -201,7 +201,7 @@ fn le_bytes(value: i32) -> [u8; 4] {
 }
 
 /// Translates a raw Kaitai Error into a human-readable message.
-pub fn format_kaitai_error(err: &kaitai::KError) -> String {
+fn format_kaitai_error(err: &kaitai::KError) -> String {
     use kaitai::KError;
     match err {
         KError::IoError { .. } => "cannot read file: Input/output error.".to_string(),
@@ -218,6 +218,66 @@ pub fn format_kaitai_error(err: &kaitai::KError) -> String {
         KError::UndecidedEndianness { .. } => "internal error: undecided endianness.".to_string(),
         _ => "an unknown error occurred.".to_string(),
     }
+}
+
+/// Translates a parse error (Kaitai with or without read context) into a human-readable message.
+pub fn format_parse_error(err: &ParseError) -> String {
+    let kerr = match err {
+        ParseError::Kaitai(k) => k,
+        ParseError::KaitaiWithContext { err: k, .. } => k,
+    };
+    format_kaitai_error(kerr)
+}
+
+/// Formats a TOML-to-binary conversion error for display.
+/// Non-verbose mode shows only the first line; verbose mode shows full context.
+pub fn format_write_error(msg: &str, verbose: bool) -> String {
+    if !verbose {
+        return msg
+            .lines()
+            .next()
+            .map(|l| format!("{}.", l.trim()))
+            .unwrap_or_else(|| msg.to_string());
+    }
+
+    let mut result = String::new();
+    let mut last_line = "";
+    for line in msg.lines() {
+        if !result.is_empty() {
+            result.push('\n');
+        }
+
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        last_line = line;
+        result.push_str(line);
+    }
+
+    if !result.contains('\n') {
+        if !last_line.is_empty() {
+            return format!("{}.", last_line);
+        }
+
+        return last_line.to_string();
+    }
+
+    if let Some(pos) = result.find('\n') {
+        result.insert(pos, ':');
+    }
+
+    if !last_line.is_empty() {
+        let fixed = rldev::common::cli::format_output(last_line);
+        result = result.trim_end_matches(last_line).to_string();
+        if !result.is_empty() && !result.ends_with('\n') {
+            result.push('\n');
+        }
+
+        result.push_str(&fixed);
+    }
+
+    result
 }
 
 /// Formats an I/O error with a POSIX-like English description.

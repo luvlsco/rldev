@@ -112,7 +112,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                 "Failed to convert \"{}\" to \"{}\" (BIN -> TOML): {}",
                 get_file_name(file),
                 get_file_name(out_path),
-                dbs::format_dbs_bin_to_toml_error(&err, file, verbose, uppercase)
+                error_formatter::format_parse_error(&err)
             );
             rldev::common::cli::exit(1);
         });
@@ -136,7 +136,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
                 "Failed to convert \"{}\" to \"{}\" (DBS -> BIN): {}",
                 get_file_name(file),
                 get_file_name(out_path),
-                message
+                error_formatter::format_write_error(&message, verbose)
             );
             rldev::common::cli::exit(1);
         });

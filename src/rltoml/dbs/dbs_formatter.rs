@@ -19,7 +19,7 @@
 use kaitai::{KStruct, OptRc};
 
 use super::dbs_parser::{DbsParser, DbsParser_ColumnType};
-use crate::error_formatter::{self, ParseError, ParseResult};
+use crate::error_formatter::{ParseError, ParseResult};
 
 /// Parses a decrypted DBS binary using the generated Kaitai parser.
 pub fn parse_dbs_bin(path: &str) -> ParseResult<OptRc<DbsParser>> {
@@ -35,7 +35,6 @@ pub fn dbs_bin_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
     if verbose {
         println!("Reading DBS binary");
     }
-
     let dbs = parse_dbs_bin(path)?;
     let types = dbs.types().map_err(ParseError::from)?;
     let mut lines = vec!["[dbs]".to_string(), String::new()];
@@ -81,15 +80,6 @@ pub fn dbs_bin_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
     if verbose {
         println!("Generating TOML");
     }
+
     Ok(lines.join("\n"))
-}
-
-/// Formats a DBS Kaitai error without inventing magic-number diagnostics.
-pub fn format_dbs_bin_to_toml_error(err: &ParseError, _path: &str, _verbose: bool, _uppercase: bool) -> String {
-    let kerr = match err {
-        ParseError::Kaitai(kerr) => kerr,
-        ParseError::KaitaiWithContext { err: kerr, .. } => kerr,
-    };
-
-    error_formatter::format_kaitai_error(kerr)
 }

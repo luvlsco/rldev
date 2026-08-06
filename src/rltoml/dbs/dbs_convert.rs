@@ -16,6 +16,7 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+use crate::error_formatter;
 use encoding_rs::SHIFT_JIS;
 
 #[derive(Debug, thiserror::Error)]
@@ -61,11 +62,7 @@ pub fn toml_to_dbs(input_path: &str, output_path: &str, verbose: bool) -> Result
 
 /// Formats a TOML-to-DBS error in the same compact style as GAN conversion.
 pub fn format_toml_to_dbs_error(err: &DbsWriteError, verbose: bool) -> String {
-    let message = err.to_string();
-    if verbose {
-        return message;
-    }
-    message.lines().next().unwrap_or(&message).trim_end_matches('.').to_string()
+    error_formatter::format_write_error(&err.to_string(), verbose)
 }
 
 fn build_dbs_bin(doc: &toml_edit::Document<std::string::String>) -> Result<Vec<u8>, DbsWriteError> {

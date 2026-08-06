@@ -260,6 +260,7 @@ pub fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) -> Result
         println!("Writing DBS file");
     }
     std::fs::write(output_path, output)?;
+
     Ok(())
 }
 

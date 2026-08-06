@@ -164,7 +164,7 @@ pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool, upp
     };
 
     let KError::ValidationFailed(validation) = kerr else {
-        return error_formatter::format_kaitai_error(kerr);
+        return error_formatter::format_parse_error(err);
     };
 
     let src = validation.src_path.as_str();

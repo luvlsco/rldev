@@ -57,53 +57,7 @@ pub fn format_toml_to_gan_error(err: &GanWriteError, verbose: bool) -> String {
         GanWriteError::Io(err) => error_formatter::format_io_error(err),
         _ => err.to_string(),
     };
-
-    if !verbose {
-        return full_msg
-            .lines()
-            .next()
-            .map(|l| format!("{}.", l.trim()))
-            .unwrap_or_else(|| full_msg.clone());
-    }
-
-    let mut result = String::new();
-    let mut last_line = "";
-    for line in full_msg.lines() {
-        if !result.is_empty() {
-            result.push('\n');
-        }
-
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        last_line = line;
-        result.push_str(line);
-    }
-
-    if !result.contains('\n') {
-        if !last_line.is_empty() {
-            return format!("{}.", last_line);
-        }
-
-        return last_line.to_string();
-    }
-
-    if let Some(pos) = result.find('\n') {
-        result.insert(pos, ':');
-    }
-
-    if !last_line.is_empty() {
-        let fixed = rldev::common::cli::format_output(last_line);
-        result = result.trim_end_matches(last_line).to_string();
-        if !result.is_empty() && !result.ends_with('\n') {
-            result.push('\n');
-        }
-
-        result.push_str(&fixed);
-    }
-
-    result
+    error_formatter::format_write_error(&full_msg, verbose)
 }
 
 /// Converts a TOML file to a GAN binary file.
