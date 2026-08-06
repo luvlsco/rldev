@@ -153,14 +153,6 @@ pub fn format_hex_u32_padded(value: u32, width: usize, uppercase: bool) -> Strin
     format_hex(value, width, uppercase)
 }
 
-fn format_hex(value: u32, width: usize, uppercase: bool) -> String {
-    if uppercase {
-        format!("0x{:0width$X}", value, width = width)
-    } else {
-        format!("0x{:0width$x}", value, width = width)
-    }
-}
-
 /// Formats a hex dump line with a caret under the field at `field_offset`.
 pub fn hex_dump_at(
     path: &str,
@@ -198,4 +190,12 @@ pub fn context_to_got_offset(context: Option<&ReadContext>) -> (Option<(i32, Vec
         None
     };
     (got, offset)
+}
+
+fn format_hex(value: u32, width: usize, uppercase: bool) -> String {
+    if uppercase {
+        format!("0x{:0width$X}", value, width = width)
+    } else {
+        format!("0x{:0width$x}", value, width = width)
+    }
 }

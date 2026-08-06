@@ -114,14 +114,13 @@ pub fn gan_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
     if verbose {
         println!("Reading GAN header");
     }
-
     let gan = parse_gan(path)?;
     let header = gan.gan_header().get();
     let data_section = gan.gan_data_section().get();
+
     if verbose {
         println!("Reading GAN set data");
     }
-
     let mut lines = vec![
         "[gan]".to_string(),
         format!("bitmap = \"{}\"", header.bitmap_name()),

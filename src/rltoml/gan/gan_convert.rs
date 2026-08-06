@@ -115,7 +115,6 @@ pub fn toml_to_gan(toml_path: &str, gan_path: &str, verbose: bool) -> Result<(),
     if verbose {
         println!("Reading and parsing TOML");
     }
-
     let file = File::create(gan_path)?;
     let mut oc = BufWriter::new(file);
     write_gan(&mut oc, &gan, verbose)?;
@@ -252,7 +251,6 @@ fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan, verbose: bool) -> Result<(
     if verbose {
         println!("Writing GAN header");
     }
-
     oc.write_all(&10_000i32.to_le_bytes())?;
     oc.write_all(&10_000i32.to_le_bytes())?;
     oc.write_all(&10_100i32.to_le_bytes())?;
@@ -266,7 +264,6 @@ fn write_gan(oc: &mut BufWriter<File>, gan: &TomlGan, verbose: bool) -> Result<(
     if verbose {
         println!("Writing GAN set data");
     }
-
     for set in &gan.sets {
         write_set(oc, set)?;
     }
