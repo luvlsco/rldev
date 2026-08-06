@@ -43,7 +43,7 @@ const KEY_PATTERN: u32 = 0x01825D99;
 
 /// XORs every u32 from offset 4 with the fixed pre-decompress key.
 /// The first u32 (offset 0-3) is left untouched. Self-inverse.
-pub(crate) fn apply_xor_layer(data: &mut [u8]) {
+pub fn apply_xor_layer(data: &mut [u8]) {
     let len = data.len();
     for i in (4..len).step_by(4) {
         if i + 4 > len {
@@ -131,28 +131,9 @@ fn decompress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
 /// Post-decompress decrypt layer. XORs each u32 with KEY_A or KEY_B,
 /// chosen by a packed 25-bit `KEY_PATTERN` cycled in 5-entry windows
 /// advancing every 16 u32s (period 80). Self-inverse.
-pub(crate) fn encrypt_dbs(data: &mut [u8]) {
-    for (i, chunk) in data.chunks_exact_mut(4).enumerate() {
-        let p = i % 80;
-        // map position p to a bit index in KEY_PATTERN:
-        // blocks of 16 u32s each use a window of 5 bits,
-        // cycling within the 25-bit pattern (5 windows of 5)
-        let idx = ((p / 16) * 5 + (p % 16 % 5)) % 25;
-        let key = if (KEY_PATTERN >> idx) & 1 != 0 { KEY_A } else { KEY_B };
-        let dw = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
-        let bytes = (dw ^ key).to_le_bytes();
-        chunk[0] = bytes[0];
-        chunk[1] = bytes[1];
-        chunk[2] = bytes[2];
-        chunk[3] = bytes[3];
-    }
-
-    let whole_u32_len = (data.len() / 4) * 4;
-    for j in whole_u32_len..data.len() {
-        let p = (j / 4) % 80;
-        let idx = ((p / 16) * 5 + (p % 16 % 5)) % 25;
-        let key = if (KEY_PATTERN >> idx) & 1 != 0 { KEY_A } else { KEY_B };
-        data[j] ^= key.to_le_bytes()[j % 4];
+pub fn encrypt_dbs(data: &mut [u8]) {
+    for (j, byte) in data.iter_mut().enumerate() {
+        *byte ^= key_for((j / 4) % 80).to_le_bytes()[j % 4];
     }
 }
 
@@ -262,7 +243,7 @@ fn find_match(data: &[u8], pos: usize) -> (usize, usize) {
 }
 
 /// Writes decrypted internal DBS data as an obfuscated `.dbs` archive.
-pub(crate) fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) -> Result<(), DbsError> {
+pub fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) -> Result<(), DbsError> {
     if verbose {
         println!("Encrypting DBS data");
     }
@@ -280,6 +261,14 @@ pub(crate) fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) ->
     }
     std::fs::write(output_path, output)?;
     Ok(())
+}
+
+fn key_for(p: usize) -> u32 {
+    // map position p to a bit index in KEY_PATTERN:
+    // blocks of 16 u32s each use a window of 5 bits,
+    // cycling within the 25-bit pattern (5 windows of 5)
+    let idx = ((p / 16) * 5 + (p % 16 % 5)) % 25;
+    if (KEY_PATTERN >> idx) & 1 != 0 { KEY_A } else { KEY_B }
 }
 
 #[cfg(test)]
