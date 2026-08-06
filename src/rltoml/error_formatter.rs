@@ -37,16 +37,12 @@ pub struct MagicSpec<'a> {
     pub label: &'a str,
     pub expected: i32,
     pub offset: usize,
-    pub kind: &'a kaitai::ValidationKind,
-    pub src_path: &'a str,
 }
 
 /// Expected-values spec for enum validation errors (e.g. frame entry tags).
 pub struct AnyOfSpec<'a> {
     pub label: &'a str,
     pub any_of: &'a [i32],
-    pub kind: &'a kaitai::ValidationKind,
-    pub src_path: &'a str,
     pub got: Option<(i32, Vec<u8>)>,
     pub offset: Option<usize>,
 }
@@ -127,15 +123,12 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool, uppercase: bool)
 			invalid value at {label}:
 			 Expected: {expected} ({exp_hex}, bytes: {exp_hex_bytes})
 			 Found: {got} ({got_hex}, bytes: {got_hex_bytes})
-			 Kaitai Error: {kind:?} @ {src}
 			 Hex offset: {} (decimal: {offset})
 		"},
         binary_reader::format_hex_u32_padded(spec.offset as u32, 8, uppercase),
         label = spec.label,
         expected = spec.expected,
         got = got,
-        kind = spec.kind,
-        src = spec.src_path,
         offset = spec.offset,
         exp_hex = binary_reader::format_hex_u32(spec.expected as u32, uppercase),
         exp_hex_bytes = binary_reader::format_bytes_hex(&expected_bytes, uppercase),
@@ -177,8 +170,6 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool, uppercase: bool
         out.push('\n');
         out.push_str(&format!("Found: {}\n", format_value(*g, bytes, uppercase)));
     }
-
-    out.push_str(&format!("Kaitai Error: {:?} @ {}\n", spec.kind, spec.src_path));
 
     if let Some(offset) = spec.offset {
         out.push_str(&format!(

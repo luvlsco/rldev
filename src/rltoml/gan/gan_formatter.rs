@@ -29,6 +29,33 @@ use super::gan_parser::GanParser_GanDataSection_AnimationFrame as GanAnimFrame;
 
 use crate::error_formatter::{self, AnyOfSpec, MagicSpec, ParseError, ParseResult};
 
+/// Kaitai validation site src_path strings, mirroring the `valid:` blocks
+/// in gan_parser.ksy (as generated in gan_parser.rs).
+const SRC_EMPTY_SET: &str = "/types/gan_data_section/types/animation_set/seq/1";
+const SRC_FRAME_TAG: &str = "/types/gan_data_section/types/frame_entry/seq/0";
+
+type MagicSite = (&'static str, &'static str, i32, fn(&str) -> Option<usize>);
+
+/// Display metadata for each magic-number validation site in gan_parser.ksy.
+/// (src_path, label, expected, offset)
+const MAGIC_SITES: [MagicSite; 5] = [
+    ("/types/gan_header/seq/0", "first GAN header", 10_000, |_| Some(0)),
+    ("/types/gan_header/seq/1", "second GAN header", 10_000, |_| Some(4)),
+    ("/types/gan_header/seq/2", "third GAN header", 10_100, |_| Some(8)),
+    (
+        "/types/gan_data_section/seq/0",
+        "data section start marker",
+        20_000,
+        compute_data_section_offset,
+    ),
+    (
+        "/types/gan_data_section/types/animation_set/seq/0",
+        "animation set start marker",
+        30_000,
+        compute_set_marker_offset,
+    ),
+];
+
 impl FrameAttrs {
     /// Iterates all frame attribute (name, value) pairs, including unset fields as `None`.
     fn iter_fields(&self) -> impl Iterator<Item = (&'static str, Option<i32>)> {
@@ -167,93 +194,45 @@ pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool, upp
         return error_formatter::format_parse_error(err);
     };
 
-    let src = validation.src_path.as_str();
-    let kind = &validation.kind;
+    let src_path = validation.src_path.as_str();
     let context = err.read_context();
     let (got, offset) = crate::binary_reader::context_to_got_offset(context);
 
-    match src {
-        "/types/gan_header/seq/0" => error_formatter::format_magic(
-            MagicSpec {
-                label: "first GAN header",
-                expected: 10_000,
-                offset: 0,
-                kind,
-                src_path: src,
-            },
-            path,
-            verbose,
-            uppercase,
-        ),
-        "/types/gan_header/seq/1" => error_formatter::format_magic(
-            MagicSpec {
-                label: "second GAN header",
-                expected: 10_000,
-                offset: 4,
-                kind,
-                src_path: src,
-            },
-            path,
-            verbose,
-            uppercase,
-        ),
-        "/types/gan_header/seq/2" => error_formatter::format_magic(
-            MagicSpec {
-                label: "third GAN header",
-                expected: 10_100,
-                offset: 8,
-                kind,
-                src_path: src,
-            },
-            path,
-            verbose,
-            uppercase,
-        ),
-        "/types/gan_data_section/seq/0" => match compute_data_section_offset(path) {
+    if let Some((_, label, expected, compute_offset)) = MAGIC_SITES.iter().find(|(site, ..)| *site == src_path) {
+        return match compute_offset(path) {
             Some(off) => error_formatter::format_magic(
                 MagicSpec {
-                    label: "data section start marker",
-                    expected: 20_000,
+                    label,
+                    expected: *expected,
                     offset: off,
-                    kind,
-                    src_path: src,
                 },
                 path,
                 verbose,
                 uppercase,
             ),
-            None => "invalid data section start marker (expected 20000)".to_string(),
-        },
-        "/types/gan_data_section/types/animation_set/seq/0" => match compute_set_marker_offset(path) {
-            Some(off) => error_formatter::format_magic(
-                MagicSpec {
-                    label: "animation set start marker",
-                    expected: 30_000,
-                    offset: off,
-                    kind,
-                    src_path: src,
-                },
-                path,
-                verbose,
-                uppercase,
-            ),
-            None => "invalid animation set start marker (expected 30000)".to_string(),
-        },
-        "/types/gan_data_section/types/frame_entry/seq/0" => error_formatter::format_any_of(
+            None => format!("invalid {} (expected {})", label, expected),
+        };
+    }
+
+    if src_path == SRC_EMPTY_SET {
+        return "animation set must contain at least one frame.".to_string();
+    }
+
+    if src_path == SRC_FRAME_TAG {
+        return error_formatter::format_any_of(
             AnyOfSpec {
                 label: "frame entry tag",
                 any_of: &valid_frame_tags(),
-                kind,
-                src_path: src,
                 got,
                 offset,
             },
             path,
             verbose,
             uppercase,
-        ),
-        _ => "parse failed at an unexpected location".to_string(),
+        );
     }
+
+    "parse failed at an unexpected location".to_string()
 }
 
 /// All valid frame entry tag values, including `FrameEnd`.
