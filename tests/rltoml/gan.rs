@@ -67,11 +67,7 @@ fn gan_error_first_magic_verbose() {
 Dump (16 of 457 bytes shown, starting at offset 0x00000000, error at offset 0x00000000):
 0x00000000 | 10 27 10 00 10 27 00 00 74 27 00 00 09 00 00 00
              ^^^^^^^^^^^";
-    assert!(
-        stderr.contains(expected_dump),
-        "caret alignment broken:\n{}",
-        stderr
-    );
+    assert!(stderr.contains(expected_dump), "caret alignment broken:\n{}", stderr);
 }
 
 #[test]
@@ -95,17 +91,11 @@ macro_rules! toml_error_test {
 toml_error_test!(toml_error_no_gan, "error_no_gan.gan.toml");
 toml_error_test!(toml_error_gan_not_table, "error_gan_not_table.gan.toml");
 toml_error_test!(toml_error_no_bitmap, "error_no_bitmap.gan.toml");
-toml_error_test!(
-    toml_error_bitmap_not_string,
-    "error_bitmap_not_string.gan.toml"
-);
+toml_error_test!(toml_error_bitmap_not_string, "error_bitmap_not_string.gan.toml");
 toml_error_test!(toml_error_no_set, "error_no_set.gan.toml");
 toml_error_test!(toml_error_set_not_array, "error_set_not_array.gan.toml");
 toml_error_test!(toml_error_no_frames, "error_no_frames.gan.toml");
-toml_error_test!(
-    toml_error_frames_not_array,
-    "error_frames_not_array.gan.toml"
-);
+toml_error_test!(toml_error_frames_not_array, "error_frames_not_array.gan.toml");
 toml_error_test!(toml_error_frame_not_table, "error_frame_not_table.gan.toml");
 toml_error_test!(toml_error_field_not_int, "error_field_not_int.gan.toml");
 toml_error_test!(toml_error_unknown_field, "error_unknown_field.gan.toml");

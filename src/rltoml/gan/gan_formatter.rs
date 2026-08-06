@@ -45,14 +45,11 @@ impl FrameAttrs {
 
     /// Builds `FrameAttrs` by mapping each entry tag in a parsed animation frame to its corresponding field.
     fn from_frame(frame: &GanAnimFrame) -> Self {
-        frame
-            .entries()
-            .iter()
-            .fold(FrameAttrs::default(), |mut attrs, entry_rc| {
-                let entry = entry_rc.get();
-                attrs.set_attr(entry.tag().clone(), *entry.value());
-                attrs
-            })
+        frame.entries().iter().fold(FrameAttrs::default(), |mut attrs, entry_rc| {
+            let entry = entry_rc.get();
+            attrs.set_attr(entry.tag().clone(), *entry.value());
+            attrs
+        })
     }
 
     /// Assigns a value to the matching field for the given frame tag, ignoring `FrameEnd` and `Unknown`.
@@ -89,17 +86,17 @@ impl FrameAttrs {
 
     /// Returns the set of attributes that are identical across all frames, discarding any that vary.
     fn common_attrs(frames: &[FrameAttrs]) -> FrameAttrs {
-        frames.iter().skip(1).fold(
-            frames.first().cloned().unwrap_or_default(),
-            |common, frame| FrameAttrs {
+        frames
+            .iter()
+            .skip(1)
+            .fold(frames.first().cloned().unwrap_or_default(), |common, frame| FrameAttrs {
                 pattern: keep_if_eq(common.pattern, frame.pattern),
                 x: keep_if_eq(common.x, frame.x),
                 y: keep_if_eq(common.y, frame.y),
                 time: keep_if_eq(common.time, frame.time),
                 alpha: keep_if_eq(common.alpha, frame.alpha),
                 z: keep_if_eq(common.z, frame.z),
-            },
-        )
+            })
     }
 }
 
@@ -133,11 +130,7 @@ pub fn gan_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
 
     for set_rc in data_section.sets().iter() {
         let set = &set_rc.get();
-        let frames: Vec<FrameAttrs> = set
-            .frames()
-            .iter()
-            .map(|rc| FrameAttrs::from_frame(&rc.get()))
-            .collect();
+        let frames: Vec<FrameAttrs> = set.frames().iter().map(|rc| FrameAttrs::from_frame(&rc.get())).collect();
         let defaults = FrameAttrs::common_attrs(&frames);
 
         lines.push("[[gan.set]]".to_string());
@@ -165,12 +158,7 @@ pub fn gan_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
 }
 
 /// Formats a Kaitai validation error with context, expected/found values, and hex dump.
-pub fn format_gan_to_toml_error(
-    err: &ParseError,
-    path: &str,
-    verbose: bool,
-    uppercase: bool,
-) -> String {
+pub fn format_gan_to_toml_error(err: &ParseError, path: &str, verbose: bool, uppercase: bool) -> String {
     let kerr = match err {
         ParseError::Kaitai(k) => k,
         ParseError::KaitaiWithContext { err: k, .. } => k,
@@ -237,23 +225,21 @@ pub fn format_gan_to_toml_error(
             ),
             None => "invalid data section start marker (expected 20000)".to_string(),
         },
-        "/types/gan_data_section/types/animation_set/seq/0" => {
-            match compute_set_marker_offset(path) {
-                Some(off) => error_formatter::format_magic(
-                    MagicSpec {
-                        label: "animation set start marker",
-                        expected: 30_000,
-                        offset: off,
-                        kind,
-                        src_path: src,
-                    },
-                    path,
-                    verbose,
-                    uppercase,
-                ),
-                None => "invalid animation set start marker (expected 30000)".to_string(),
-            }
-        }
+        "/types/gan_data_section/types/animation_set/seq/0" => match compute_set_marker_offset(path) {
+            Some(off) => error_formatter::format_magic(
+                MagicSpec {
+                    label: "animation set start marker",
+                    expected: 30_000,
+                    offset: off,
+                    kind,
+                    src_path: src,
+                },
+                path,
+                verbose,
+                uppercase,
+            ),
+            None => "invalid animation set start marker (expected 30000)".to_string(),
+        },
         "/types/gan_data_section/types/frame_entry/seq/0" => error_formatter::format_any_of(
             AnyOfSpec {
                 label: "frame entry tag",

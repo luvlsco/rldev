@@ -124,16 +124,9 @@ impl DbsParser {
         *self.rows.borrow_mut() = Vec::new();
         let l_rows = self.row_ids()?.len();
         for _i in 0..l_rows {
-            let f = |t: &mut DbsParser_Row| {
-                Ok(t.set_params((_i).try_into().map_err(|_| KError::CastError)?))
-            };
-            let t = Self::read_into_with_init::<_, DbsParser_Row>(
-                &*_io,
-                Some(self._root.clone()),
-                Some(self._self.clone()),
-                &f,
-            )?
-            .into();
+            let f = |t: &mut DbsParser_Row| Ok(t.set_params((_i).try_into().map_err(|_| KError::CastError)?));
+            let t = Self::read_into_with_init::<_, DbsParser_Row>(&*_io, Some(self._root.clone()), Some(self._self.clone()), &f)?
+                .into();
             self.rows.borrow_mut().push(t);
         }
         Ok(self.rows.borrow())
@@ -154,9 +147,7 @@ impl DbsParser {
         let _pos = _io.pos();
         _io.seek(*self.string_table_offset() as usize)?;
         *self.string_table_raw.borrow_mut() = _io
-            .read_bytes(
-                ((*self.string_end() as u32) - (*self.string_table_offset() as u32)) as usize,
-            )?
+            .read_bytes(((*self.string_end() as u32) - (*self.string_table_offset() as u32)) as usize)?
             .into();
         _io.seek(_pos)?;
         Ok(self.string_table_raw.borrow())
@@ -179,12 +170,8 @@ impl DbsParser {
         *self.types.borrow_mut() = Vec::new();
         let l_types = *self.num_types();
         for _i in 0..l_types {
-            let t = Self::read_into::<_, DbsParser_ColumnTypeEntry>(
-                &*_io,
-                Some(self._root.clone()),
-                Some(self._self.clone()),
-            )?
-            .into();
+            let t = Self::read_into::<_, DbsParser_ColumnTypeEntry>(&*_io, Some(self._root.clone()), Some(self._self.clone()))?
+                .into();
             self.types.borrow_mut().push(t);
         }
         _io.seek(_pos)?;
@@ -351,12 +338,11 @@ impl DbsParser_Cell {
             return Ok(self.col_type.borrow());
         }
         self.f_col_type.set(true);
-        *self.col_type.borrow_mut() =
-            if *_r.types()?[*self.col_idx() as usize].data_type() == DbsParser_ColumnType::String {
-                DbsParser_ColumnType::String.clone()
-            } else {
-                _r.types()?[*self.col_idx() as usize].data_type().clone()
-            };
+        *self.col_type.borrow_mut() = if *_r.types()?[*self.col_idx() as usize].data_type() == DbsParser_ColumnType::String {
+            DbsParser_ColumnType::String.clone()
+        } else {
+            _r.types()?[*self.col_idx() as usize].data_type().clone()
+        };
         Ok(self.col_type.borrow())
     }
 
@@ -390,9 +376,9 @@ impl DbsParser_Cell {
             return Ok(self.raw_value.borrow());
         }
         self.f_raw_value.set(true);
-        *self.raw_value.borrow_mut() =
-            (_r.values()?[((((*self.row_idx() as i32) * (*_r.num_types() as i32)) as i32)
-                + (*self.col_idx() as i32)) as usize]) as u32;
+        *self.raw_value.borrow_mut() = (_r.values()?
+            [((((*self.row_idx() as i32) * (*_r.num_types() as i32)) as i32) + (*self.col_idx() as i32)) as usize])
+            as u32;
         Ok(self.raw_value.borrow())
     }
 
@@ -412,10 +398,7 @@ impl DbsParser_Cell {
             let io = Clone::clone(&*_r._io());
             let _pos = io.pos();
             io.seek(((*_r.string_table_offset() as u32) + (*self.raw_value()? as u32)) as usize)?;
-            *self.str_value.borrow_mut() = bytes_to_str(
-                &io.read_bytes_term(0, false, true, true)?.into(),
-                "Shift_JIS",
-            )?;
+            *self.str_value.borrow_mut() = bytes_to_str(&io.read_bytes_term(0, false, true, true)?.into(), "Shift_JIS")?;
             io.seek(_pos)?;
         }
         Ok(self.str_value.borrow())
@@ -541,19 +524,13 @@ impl DbsParser_Row {
         for _i in 0..l_cells {
             let f = |t: &mut DbsParser_Cell| {
                 Ok(t.set_params(
-                    (*self.row_idx())
-                        .try_into()
-                        .map_err(|_| KError::CastError)?,
+                    (*self.row_idx()).try_into().map_err(|_| KError::CastError)?,
                     (_i).try_into().map_err(|_| KError::CastError)?,
                 ))
             };
-            let t = Self::read_into_with_init::<_, DbsParser_Cell>(
-                &*_io,
-                Some(self._root.clone()),
-                Some(self._self.clone()),
-                &f,
-            )?
-            .into();
+            let t =
+                Self::read_into_with_init::<_, DbsParser_Cell>(&*_io, Some(self._root.clone()), Some(self._self.clone()), &f)?
+                    .into();
             self.cells.borrow_mut().push(t);
         }
         Ok(self.cells.borrow())

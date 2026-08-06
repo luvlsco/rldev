@@ -125,14 +125,12 @@ pub fn toml_to_gan(toml_path: &str, gan_path: &str, verbose: bool) -> Result<(),
 }
 
 /// Parses a single frame from a TOML inline table.
-fn parse_frame_from_inline_table(
-    table: &toml_edit::InlineTable,
-) -> Result<FrameAttrs, GanWriteError> {
+fn parse_frame_from_inline_table(table: &toml_edit::InlineTable) -> Result<FrameAttrs, GanWriteError> {
     let mut attrs = FrameAttrs::default();
     for (key, value) in table.iter() {
-        let v = value.as_integer().ok_or_else(|| {
-            GanWriteError::InvalidStructure(format!("frame field '{}' must be an integer", key))
-        })?;
+        let v = value
+            .as_integer()
+            .ok_or_else(|| GanWriteError::InvalidStructure(format!("frame field '{}' must be an integer", key)))?;
         match key {
             "pattern" => attrs.pattern = Some(v as i32),
             "x" => attrs.x = Some(v as i32),
@@ -141,10 +139,7 @@ fn parse_frame_from_inline_table(
             "alpha" => attrs.alpha = Some(v as i32),
             "z" => attrs.z = Some(v as i32),
             _ => {
-                return Err(GanWriteError::InvalidStructure(format!(
-                    "unknown frame field '{}'",
-                    key
-                )));
+                return Err(GanWriteError::InvalidStructure(format!("unknown frame field '{}'", key)));
             }
         }
     }
@@ -152,7 +147,6 @@ fn parse_frame_from_inline_table(
 }
 
 /// Parses a set table from TOML, including default attributes and all frames.
-#[rustfmt::skip]
 fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteError> {
     let mut set = TomlSet::default();
     set.defaults.pattern = table.get("pattern").and_then(|i| i.as_integer()).map(|v| v as i32);
@@ -171,11 +165,10 @@ fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteErr
         .ok_or_else(|| GanWriteError::InvalidStructure("'frames' must be an array".to_string()))?;
 
     for item in frames_array.iter() {
-        let inline_table = item.as_inline_table().ok_or_else(|| {
-            GanWriteError::InvalidStructure("frame must be an inline table".to_string())
-        })?;
-        set.frames
-            .push(parse_frame_from_inline_table(inline_table)?);
+        let inline_table = item
+            .as_inline_table()
+            .ok_or_else(|| GanWriteError::InvalidStructure("frame must be an inline table".to_string()))?;
+        set.frames.push(parse_frame_from_inline_table(inline_table)?);
     }
 
     if set.frames.is_empty() {
@@ -188,9 +181,7 @@ fn parse_set_from_table(table: &toml_edit::Table) -> Result<TomlSet, GanWriteErr
 }
 
 /// Parses a complete TOML document into a `TomlGan` structure.
-fn parse_toml_gan(
-    doc: &toml_edit::Document<std::string::String>,
-) -> Result<TomlGan, GanWriteError> {
+fn parse_toml_gan(doc: &toml_edit::Document<std::string::String>) -> Result<TomlGan, GanWriteError> {
     let root = doc
         .as_table()
         .get("gan")
@@ -205,13 +196,13 @@ fn parse_toml_gan(
         .ok_or_else(|| GanWriteError::InvalidStructure("'bitmap' must be a string".to_string()))?
         .to_string();
 
-    let set_item = root.get("set").ok_or_else(|| {
-        GanWriteError::InvalidStructure("missing [[gan.set]] entries".to_string())
-    })?;
+    let set_item = root
+        .get("set")
+        .ok_or_else(|| GanWriteError::InvalidStructure("missing [[gan.set]] entries".to_string()))?;
 
-    let set_array = set_item.as_array_of_tables().ok_or_else(|| {
-        GanWriteError::InvalidStructure("'set' must be an array of tables".to_string())
-    })?;
+    let set_array = set_item
+        .as_array_of_tables()
+        .ok_or_else(|| GanWriteError::InvalidStructure("'set' must be an array of tables".to_string()))?;
 
     let mut gan = TomlGan {
         bitmap,
@@ -226,7 +217,6 @@ fn parse_toml_gan(
 
 /// Writes a single frame's tag-value pairs to the binary output.
 /// Uses set defaults for any attributes not specified in the frame.
-#[rustfmt::skip]
 fn write_frame(oc: &mut BufWriter<File>, frame: &FrameAttrs, defaults: &FrameAttrs) -> Result<(), GanWriteError> {
     for (tag, value) in [
         (i64::from(&GanFrame::Pattern) as i32, frame.pattern.or(defaults.pattern)),

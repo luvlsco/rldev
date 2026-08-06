@@ -51,11 +51,7 @@ struct TomlRow {
 }
 
 /// Converts TOML directly into the wrapped `.dbs` archive.
-pub fn toml_to_dbs(
-    input_path: &str,
-    output_path: &str,
-    verbose: bool,
-) -> Result<(), DbsWriteError> {
+pub fn toml_to_dbs(input_path: &str, output_path: &str, verbose: bool) -> Result<(), DbsWriteError> {
     let content = std::fs::read_to_string(input_path)?;
     let doc = content.parse()?;
     let data = build_dbs_bin(&doc)?;
@@ -69,12 +65,7 @@ pub fn format_toml_to_dbs_error(err: &DbsWriteError, verbose: bool) -> String {
     if verbose {
         return message;
     }
-    message
-        .lines()
-        .next()
-        .unwrap_or(&message)
-        .trim_end_matches('.')
-        .to_string()
+    message.lines().next().unwrap_or(&message).trim_end_matches('.').to_string()
 }
 
 fn build_dbs_bin(doc: &toml_edit::Document<std::string::String>) -> Result<Vec<u8>, DbsWriteError> {
@@ -88,9 +79,9 @@ fn build_dbs_bin(doc: &toml_edit::Document<std::string::String>) -> Result<Vec<u
     let column_item = root
         .get("column")
         .ok_or_else(|| DbsWriteError::InvalidStructure("missing [[dbs.column]] entries".into()))?;
-    let column_tables = column_item.as_array_of_tables().ok_or_else(|| {
-        DbsWriteError::InvalidStructure("'column' must be an array of tables".into())
-    })?;
+    let column_tables = column_item
+        .as_array_of_tables()
+        .ok_or_else(|| DbsWriteError::InvalidStructure("'column' must be an array of tables".into()))?;
 
     let mut columns = Vec::with_capacity(column_tables.len());
     for table in column_tables.iter() {
@@ -98,17 +89,13 @@ fn build_dbs_bin(doc: &toml_edit::Document<std::string::String>) -> Result<Vec<u
         let type_name = table
             .get("type")
             .and_then(|item| item.as_str())
-            .ok_or_else(|| {
-                DbsWriteError::InvalidStructure("column 'type' must be a string".into())
-            })?;
+            .ok_or_else(|| DbsWriteError::InvalidStructure("column 'type' must be a string".into()))?;
         let type_code = match type_name {
             "string" => 0x53,
             "integer" => 0x56,
             "unknown" => table_u32(table, "type_code")?,
             _ => {
-                return Err(DbsWriteError::InvalidStructure(format!(
-                    "unknown column type '{type_name}'"
-                )));
+                return Err(DbsWriteError::InvalidStructure(format!("unknown column type '{type_name}'")));
             }
         };
         columns.push(TomlColumn { id, type_code });
@@ -117,9 +104,9 @@ fn build_dbs_bin(doc: &toml_edit::Document<std::string::String>) -> Result<Vec<u
     let row_item = root
         .get("row")
         .ok_or_else(|| DbsWriteError::InvalidStructure("missing [[dbs.row]] entries".into()))?;
-    let row_tables = row_item.as_array_of_tables().ok_or_else(|| {
-        DbsWriteError::InvalidStructure("'row' must be an array of tables".into())
-    })?;
+    let row_tables = row_item
+        .as_array_of_tables()
+        .ok_or_else(|| DbsWriteError::InvalidStructure("'row' must be an array of tables".into()))?;
 
     let mut rows = Vec::with_capacity(row_tables.len());
     for table in row_tables.iter() {
@@ -133,9 +120,7 @@ fn build_dbs_bin(doc: &toml_edit::Document<std::string::String>) -> Result<Vec<u
             cells.push(match column.type_code {
                 0x53 => TomlCell::String(
                     item.as_str()
-                        .ok_or_else(|| {
-                            DbsWriteError::InvalidStructure(format!("'{key}' must be a string"))
-                        })?
+                        .ok_or_else(|| DbsWriteError::InvalidStructure(format!("'{key}' must be a string")))?
                         .to_string(),
                 ),
                 _ => TomlCell::Integer(item_u32(item, &key)?),
@@ -158,23 +143,18 @@ fn item_u32(item: &toml_edit::Item, key: &str) -> Result<u32, DbsWriteError> {
     let value = item
         .as_integer()
         .ok_or_else(|| DbsWriteError::InvalidStructure(format!("'{key}' must be an integer")))?;
-    u32::try_from(value)
-        .map_err(|_| DbsWriteError::InvalidStructure(format!("'{key}' is outside the u32 range")))
+    u32::try_from(value).map_err(|_| DbsWriteError::InvalidStructure(format!("'{key}' is outside the u32 range")))
 }
 
 fn write_dbs_bin(columns: &[TomlColumn], rows: &[TomlRow]) -> Result<Vec<u8>, DbsWriteError> {
-    let row_count = u32::try_from(rows.len())
-        .map_err(|_| DbsWriteError::InvalidStructure("too many rows".into()))?;
-    let column_count = u32::try_from(columns.len())
-        .map_err(|_| DbsWriteError::InvalidStructure("too many columns".into()))?;
+    let row_count = u32::try_from(rows.len()).map_err(|_| DbsWriteError::InvalidStructure("too many rows".into()))?;
+    let column_count = u32::try_from(columns.len()).map_err(|_| DbsWriteError::InvalidStructure("too many columns".into()))?;
     let row_id_offset = 0x1C_u32;
     let type_list_offset = checked_offset(row_id_offset, row_count.checked_mul(4))?;
     let value_list_offset = checked_offset(type_list_offset, column_count.checked_mul(8))?;
     let string_table_offset = checked_offset(
         value_list_offset,
-        row_count
-            .checked_mul(column_count)
-            .and_then(|n| n.checked_mul(4)),
+        row_count.checked_mul(column_count).and_then(|n| n.checked_mul(4)),
     )?;
 
     let mut values = Vec::with_capacity(rows.len().saturating_mul(columns.len()));
@@ -188,9 +168,8 @@ fn write_dbs_bin(columns: &[TomlColumn], rows: &[TomlRow]) -> Result<Vec<u8>, Db
         for cell in &row.cells {
             match cell {
                 TomlCell::String(value) => {
-                    let offset = u32::try_from(string_table.len()).map_err(|_| {
-                        DbsWriteError::InvalidStructure("string table is too large".into())
-                    })?;
+                    let offset = u32::try_from(string_table.len())
+                        .map_err(|_| DbsWriteError::InvalidStructure("string table is too large".into()))?;
                     let encoded = encode_shift_jis(value)?;
                     string_table.extend_from_slice(&encoded);
                     string_table.push(0);
@@ -232,18 +211,14 @@ fn write_dbs_bin(columns: &[TomlColumn], rows: &[TomlRow]) -> Result<Vec<u8>, Db
 }
 
 fn checked_offset(base: u32, add: Option<u32>) -> Result<u32, DbsWriteError> {
-    base.checked_add(
-        add.ok_or_else(|| DbsWriteError::InvalidStructure("DBS binary is too large".into()))?,
-    )
-    .ok_or_else(|| DbsWriteError::InvalidStructure("DBS binary is too large".into()))
+    base.checked_add(add.ok_or_else(|| DbsWriteError::InvalidStructure("DBS binary is too large".into()))?)
+        .ok_or_else(|| DbsWriteError::InvalidStructure("DBS binary is too large".into()))
 }
 
 fn encode_shift_jis(value: &str) -> Result<Vec<u8>, DbsWriteError> {
     let (encoded, _, had_errors) = SHIFT_JIS.encode(value);
     if had_errors {
-        return Err(DbsWriteError::Encoding(
-            "cannot encode string as Shift_JIS".into(),
-        ));
+        return Err(DbsWriteError::Encoding("cannot encode string as Shift_JIS".into()));
     }
     Ok(encoded.into_owned())
 }

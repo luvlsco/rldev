@@ -104,9 +104,7 @@ pub fn format_dump(path: &str, offset: usize, field_len: usize, uppercase: bool)
         binary_reader::format_hex_u32_padded(dump_start as u32, 8, uppercase),
         binary_reader::format_hex_u32_padded(offset as u32, 8, uppercase)
     );
-    let (line, caret) =
-        binary_reader::hex_dump_at(path, dump_start, dump_len, offset, field_len, uppercase)
-            .ok()?;
+    let (line, caret) = binary_reader::hex_dump_at(path, dump_start, dump_len, offset, field_len, uppercase).ok()?;
     Some(format!("{}\n{}\n{}", header, line, caret))
 }
 
@@ -121,10 +119,7 @@ pub fn format_magic(spec: MagicSpec, path: &str, verbose: bool, uppercase: bool)
     };
 
     if !verbose {
-        return format!(
-            "invalid value at {}: found {} (expected {}).",
-            spec.label, got, spec.expected
-        );
+        return format!("invalid value at {}: found {} (expected {}).", spec.label, got, spec.expected);
     }
 
     let out = format!(
@@ -168,20 +163,14 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool, uppercase: bool
                 "invalid value at {}: found {} (expected any of: {}).",
                 spec.label, g, list_str
             ),
-            None => format!(
-                "invalid value at {} (expected any of: {}).",
-                spec.label, list_str
-            ),
+            None => format!("invalid value at {} (expected any of: {}).", spec.label, list_str),
         };
     }
 
     let mut out = format!("invalid value at {}:\n", spec.label);
     out.push_str("Expected any of:\n");
     for v in spec.any_of {
-        out.push_str(&format!(
-            " - {}\n",
-            format_value(*v, &le_bytes(*v), uppercase)
-        ));
+        out.push_str(&format!(" - {}\n", format_value(*v, &le_bytes(*v), uppercase)));
     }
 
     if let Some((g, bytes)) = &spec.got {
@@ -189,10 +178,7 @@ pub fn format_any_of(spec: AnyOfSpec, path: &str, verbose: bool, uppercase: bool
         out.push_str(&format!("Found: {}\n", format_value(*g, bytes, uppercase)));
     }
 
-    out.push_str(&format!(
-        "Kaitai Error: {:?} @ {}\n",
-        spec.kind, spec.src_path
-    ));
+    out.push_str(&format!("Kaitai Error: {:?} @ {}\n", spec.kind, spec.src_path));
 
     if let Some(offset) = spec.offset {
         out.push_str(&format!(
@@ -219,20 +205,12 @@ pub fn format_kaitai_error(err: &kaitai::KError) -> String {
     use kaitai::KError;
     match err {
         KError::IoError { .. } => "cannot read file: Input/output error.".to_string(),
-        KError::Eof {
-            requested,
-            available,
-        } => format!(
-            "file is truncated (expected {} bytes, found {}).",
-            requested, available
-        ),
+        KError::Eof { requested, available } => format!("file is truncated (expected {} bytes, found {}).", requested, available),
         KError::NoTerminatorFound => "expected string terminator not found.".to_string(),
         KError::EmptyIterator => "expected data but found none.".to_string(),
         KError::UnknownEncoding { name } => format!("unknown encoding: {}.", name),
         KError::ReadBitsTooLarge { requested } => format!("read bits too large ({}).", requested),
-        KError::MissingRoot | KError::MissingParent => {
-            "internal error: missing reference.".to_string()
-        }
+        KError::MissingRoot | KError::MissingParent => "internal error: missing reference.".to_string(),
         KError::BytesDecodingError { msg } => {
             format!("bytes decoding error: {}.", msg.trim_end_matches('.'))
         }
@@ -262,9 +240,7 @@ pub fn format_io_error(err: &std::io::Error) -> String {
         std::io::ErrorKind::NotSeekable => "Illegal seek",
         std::io::ErrorKind::QuotaExceeded => "Disk quota exceeded",
         std::io::ErrorKind::FileTooLarge => "File too large",
-        std::io::ErrorKind::ResourceBusy | std::io::ErrorKind::ExecutableFileBusy => {
-            "Device or resource busy"
-        }
+        std::io::ErrorKind::ResourceBusy | std::io::ErrorKind::ExecutableFileBusy => "Device or resource busy",
         std::io::ErrorKind::Deadlock => "Resource deadlock avoided",
         std::io::ErrorKind::CrossesDevices => "Invalid cross-device link",
         std::io::ErrorKind::TooManyLinks => "Too many links",

@@ -185,9 +185,7 @@ pub fn hex_dump_at(
 }
 
 /// Converts the read context into the "got" value and offset for error reporting.
-pub fn context_to_got_offset(
-    context: Option<&ReadContext>,
-) -> (Option<(i32, Vec<u8>)>, Option<usize>) {
+pub fn context_to_got_offset(context: Option<&ReadContext>) -> (Option<(i32, Vec<u8>)>, Option<usize>) {
     let Some(c) = context else {
         return (None, None);
     };

@@ -17,20 +17,14 @@ pub fn print_help(cmd: Command) {
 /// and ensures the line ends with a period (skipped when multi-line or already ending with ':').
 pub fn format_output(text: &str) -> String {
     let text = text.trim_end();
-    let content = text
-        .rsplit_once('\n')
-        .map_or(text, |(before, _)| before.trim_end());
+    let content = text.rsplit_once('\n').map_or(text, |(before, _)| before.trim_end());
 
     if content.is_empty() {
         return String::new();
     }
 
     let mut chars = content.chars();
-    let result = format!(
-        "{}{}",
-        chars.next().unwrap().to_uppercase(),
-        chars.as_str()
-    );
+    let result = format!("{}{}", chars.next().unwrap().to_uppercase(), chars.as_str());
 
     if result.contains('\n') || result.ends_with(':') {
         result

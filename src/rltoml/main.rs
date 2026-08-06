@@ -63,16 +63,15 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 
     // .gan
     if file_name.ends_with(".gan") {
-        let toml =
-            gan::gan_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
-                eprintln!(
-                    "Failed to convert \"{}\" to \"{}\" (GAN -> TOML): {}",
-                    get_file_name(file),
-                    get_file_name(out_path),
-                    gan::format_gan_to_toml_error(&err, file, verbose, uppercase)
-                );
-                rldev::common::cli::exit(1);
-            });
+        let toml = gan::gan_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
+            eprintln!(
+                "Failed to convert \"{}\" to \"{}\" (GAN -> TOML): {}",
+                get_file_name(file),
+                get_file_name(out_path),
+                gan::format_gan_to_toml_error(&err, file, verbose, uppercase)
+            );
+            rldev::common::cli::exit(1);
+        });
         if let Err(err) = std::fs::write(out_path, toml) {
             eprintln!(
                 "Error writing {}: {}",
@@ -108,17 +107,15 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
 
     // .dbs.bin
     } else if file_name.ends_with(".dbs.bin") {
-        let toml = dbs::dbs_bin_to_toml(file, verbose).unwrap_or_else(
-            |err: error_formatter::ParseError| {
-                eprintln!(
-                    "Failed to convert \"{}\" to \"{}\" (BIN -> TOML): {}",
-                    get_file_name(file),
-                    get_file_name(out_path),
-                    dbs::format_dbs_bin_to_toml_error(&err, file, verbose, uppercase)
-                );
-                rldev::common::cli::exit(1);
-            },
-        );
+        let toml = dbs::dbs_bin_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
+            eprintln!(
+                "Failed to convert \"{}\" to \"{}\" (BIN -> TOML): {}",
+                get_file_name(file),
+                get_file_name(out_path),
+                dbs::format_dbs_bin_to_toml_error(&err, file, verbose, uppercase)
+            );
+            rldev::common::cli::exit(1);
+        });
         if let Err(err) = std::fs::write(out_path, toml) {
             eprintln!(
                 "Error writing {}: {}",
@@ -186,30 +183,24 @@ fn main() {
     // Append target extension to single-file conversion
     let output: Option<String> = if inputs.len() == 1 {
         args.output.map(|output_name| {
-            let converted_output_suffix =
-                inputs[0]
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .and_then(|file_name| {
-                        if file_name.ends_with(".gan.toml") {
-                            Some(".gan")
-                        } else if file_name.ends_with(".gan") {
-                            Some(".gan.toml")
-                        } else if file_name.ends_with(".dbs.bin.toml") {
-                            Some(".dbs")
-                        } else if file_name.ends_with(".dbs.bin") {
-                            Some(".dbs.bin.toml")
-                        } else if file_name.ends_with(".dbs") {
-                            Some(".dbs.bin")
-                        } else {
-                            None
-                        }
-                    });
+            let converted_output_suffix = inputs[0].file_name().and_then(|n| n.to_str()).and_then(|file_name| {
+                if file_name.ends_with(".gan.toml") {
+                    Some(".gan")
+                } else if file_name.ends_with(".gan") {
+                    Some(".gan.toml")
+                } else if file_name.ends_with(".dbs.bin.toml") {
+                    Some(".dbs")
+                } else if file_name.ends_with(".dbs.bin") {
+                    Some(".dbs.bin.toml")
+                } else if file_name.ends_with(".dbs") {
+                    Some(".dbs.bin")
+                } else {
+                    None
+                }
+            });
             converted_output_suffix
                 .filter(|suffix| !output_name.ends_with(suffix))
-                .map_or(output_name.clone(), |suffix| {
-                    format!("{}{}", output_name, suffix)
-                })
+                .map_or(output_name.clone(), |suffix| format!("{}{}", output_name, suffix))
         })
     } else {
         args.output

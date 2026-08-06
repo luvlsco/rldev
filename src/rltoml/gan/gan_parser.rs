@@ -60,19 +60,11 @@ impl KStruct for GanParser {
         let _rrc = self_rc._root.get_value().borrow().upgrade();
         let _prc = self_rc._parent.get_value().borrow().upgrade();
         let _r = _rrc.as_ref().unwrap();
-        let t = Self::read_into::<_, GanParser_GanHeader>(
-            &*_io,
-            Some(self_rc._root.clone()),
-            Some(self_rc._self.clone()),
-        )?
-        .into();
+        let t =
+            Self::read_into::<_, GanParser_GanHeader>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?.into();
         *self_rc.gan_header.borrow_mut() = t;
-        let t = Self::read_into::<_, GanParser_GanDataSection>(
-            &*_io,
-            Some(self_rc._root.clone()),
-            Some(self_rc._self.clone()),
-        )?
-        .into();
+        let t = Self::read_into::<_, GanParser_GanDataSection>(&*_io, Some(self_rc._root.clone()), Some(self_rc._self.clone()))?
+            .into();
         *self_rc.gan_data_section.borrow_mut() = t;
         Ok(())
     }
@@ -462,10 +454,7 @@ impl KStruct for GanParser_GanHeader {
             }));
         }
         *self_rc.bitmap_name_len.borrow_mut() = _io.read_u4le()?.into();
-        *self_rc.bitmap_name.borrow_mut() = bytes_to_str(
-            &_io.read_bytes_term(0, false, true, true)?.into(),
-            "Shift_JIS",
-        )?;
+        *self_rc.bitmap_name.borrow_mut() = bytes_to_str(&_io.read_bytes_term(0, false, true, true)?.into(), "Shift_JIS")?;
         Ok(())
     }
 }

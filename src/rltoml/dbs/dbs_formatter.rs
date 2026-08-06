@@ -67,8 +67,7 @@ pub fn dbs_bin_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
             let cell = cell_rc.get();
             let value = match &*cell.col_type().map_err(ParseError::from)? {
                 DbsParser_ColumnType::String => {
-                    toml_edit::Value::from(cell.str_value().map_err(ParseError::from)?.as_str())
-                        .to_string()
+                    toml_edit::Value::from(cell.str_value().map_err(ParseError::from)?.as_str()).to_string()
                 }
                 DbsParser_ColumnType::Integer | DbsParser_ColumnType::Unknown(_) => {
                     (*cell.raw_value().map_err(ParseError::from)?).to_string()
@@ -86,12 +85,7 @@ pub fn dbs_bin_to_toml(path: &str, verbose: bool) -> ParseResult<String> {
 }
 
 /// Formats a DBS Kaitai error without inventing magic-number diagnostics.
-pub fn format_dbs_bin_to_toml_error(
-    err: &ParseError,
-    _path: &str,
-    _verbose: bool,
-    _uppercase: bool,
-) -> String {
+pub fn format_dbs_bin_to_toml_error(err: &ParseError, _path: &str, _verbose: bool, _uppercase: bool) -> String {
     let kerr = match err {
         ParseError::Kaitai(kerr) => kerr,
         ParseError::KaitaiWithContext { err: kerr, .. } => kerr,

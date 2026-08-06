@@ -39,11 +39,7 @@ use clap::{CommandFactory, Parser};
 
 pub struct Args {
     // RlToml Information
-    #[arg(
-        long = "version",
-        help = "display RlToml version information",
-        help_heading = "Information"
-    )]
+    #[arg(long = "version", help = "display RlToml version information", help_heading = "Information")]
     pub version: bool,
 
     #[arg(
@@ -53,11 +49,7 @@ pub struct Args {
     )]
     pub info: bool,
 
-    #[arg(
-        long = "help",
-        help = "display this usage information",
-        help_heading = "Information"
-    )]
+    #[arg(long = "help", help = "display this usage information", help_heading = "Information")]
     pub help: bool,
 
     // RlToml Options
@@ -102,10 +94,7 @@ pub fn parse_args() -> Args {
         Err(e) => {
             let mut cmd = <Args as CommandFactory>::command().color(clap::ColorChoice::Never);
             let formatted = e.format(&mut cmd);
-            eprintln!(
-                "{}",
-                rldev::common::cli::format_output(&formatted.to_string())
-            );
+            eprintln!("{}", rldev::common::cli::format_output(&formatted.to_string()));
             rldev::common::cli::exit(formatted.exit_code());
         }
     }

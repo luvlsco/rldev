@@ -68,9 +68,7 @@ pub(crate) fn apply_xor_layer(data: &mut [u8]) {
 /// range 2-17).
 fn decompress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
     if data.len() < 12 {
-        return Err(DbsError::InvalidFormat(
-            "file too short for compression header".into(),
-        ));
+        return Err(DbsError::InvalidFormat("file too short for compression header".into()));
     }
 
     let dlen = u32::from_le_bytes([data[8], data[9], data[10], data[11]]) as usize;
@@ -99,9 +97,7 @@ fn decompress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
             i += 1;
         } else {
             if i + 1 >= data.len() {
-                return Err(DbsError::InvalidFormat(
-                    "unexpected end of compressed data".into(),
-                ));
+                return Err(DbsError::InvalidFormat("unexpected end of compressed data".into()));
             }
             let b1 = data[i];
             let b2 = data[i + 1];
@@ -110,9 +106,7 @@ fn decompress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
             let len = (b1 & 0xF) as usize + 2;
 
             if offset == 0 || offset > out_pos || len > dlen - out_pos {
-                return Err(DbsError::InvalidFormat(
-                    "invalid LZ77 back-reference offset".into(),
-                ));
+                return Err(DbsError::InvalidFormat("invalid LZ77 back-reference offset".into()));
             }
 
             for _ in 0..len {
@@ -144,11 +138,7 @@ pub(crate) fn encrypt_dbs(data: &mut [u8]) {
         // blocks of 16 u32s each use a window of 5 bits,
         // cycling within the 25-bit pattern (5 windows of 5)
         let idx = ((p / 16) * 5 + (p % 16 % 5)) % 25;
-        let key = if (KEY_PATTERN >> idx) & 1 != 0 {
-            KEY_A
-        } else {
-            KEY_B
-        };
+        let key = if (KEY_PATTERN >> idx) & 1 != 0 { KEY_A } else { KEY_B };
         let dw = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
         let bytes = (dw ^ key).to_le_bytes();
         chunk[0] = bytes[0];
@@ -161,11 +151,7 @@ pub(crate) fn encrypt_dbs(data: &mut [u8]) {
     for j in whole_u32_len..data.len() {
         let p = (j / 4) % 80;
         let idx = ((p / 16) * 5 + (p % 16 % 5)) % 25;
-        let key = if (KEY_PATTERN >> idx) & 1 != 0 {
-            KEY_A
-        } else {
-            KEY_B
-        };
+        let key = if (KEY_PATTERN >> idx) & 1 != 0 { KEY_A } else { KEY_B };
         data[j] ^= key.to_le_bytes()[j % 4];
     }
 }
@@ -251,8 +237,7 @@ fn compress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
             .ok_or_else(|| DbsError::InvalidFormat("compressed DBS is too large".into()))?,
     )
     .map_err(|_| DbsError::InvalidFormat("compressed DBS is too large".into()))?;
-    let decompressed_length = u32::try_from(data.len())
-        .map_err(|_| DbsError::InvalidFormat("DBS data is too large".into()))?;
+    let decompressed_length = u32::try_from(data.len()).map_err(|_| DbsError::InvalidFormat("DBS data is too large".into()))?;
     let mut output = Vec::with_capacity(stream.len() + 12);
     output.extend_from_slice(&0u32.to_le_bytes());
     output.extend_from_slice(&compressed_length.to_le_bytes());
@@ -286,11 +271,7 @@ fn find_match(data: &[u8], pos: usize) -> (usize, usize) {
 }
 
 /// Writes decrypted internal DBS data as an obfuscated `.dbs` archive.
-pub(crate) fn write_bin_as_dbs(
-    data: &[u8],
-    output_path: &str,
-    verbose: bool,
-) -> Result<(), DbsError> {
+pub(crate) fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) -> Result<(), DbsError> {
     if verbose {
         println!("Encrypting DBS data");
     }
