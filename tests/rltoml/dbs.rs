@@ -41,6 +41,39 @@ fn bin_to_toml_contains_parser_data() {
 }
 
 #[test]
+fn bin_to_toml_default_output_name() {
+    let dir = std::env::temp_dir().join("rltoml_dbs_default_out");
+    std::fs::create_dir_all(&dir).unwrap();
+    let input = dir.join("dangopedia.dbs.bin");
+    std::fs::copy(fixture("dangopedia.dbs.bin"), &input).unwrap();
+
+    let (ok, stdout, stderr) = run(&input, &[]);
+    assert!(ok, "{stderr}");
+    assert!(stdout.contains("Successfully converted: dangopedia.dbs.bin.toml"));
+    assert!(dir.join("dangopedia.dbs.bin.toml").exists());
+}
+
+#[test]
+fn dbs_archive_header_first_word_zero() {
+    let archive = std::fs::read(fixture("dangopedia.dbs")).unwrap();
+    assert_eq!(&archive[0..4], &[0, 0, 0, 0]);
+}
+
+#[test]
+fn dbs_bin_round_trip_byte_exact() {
+    let prefix = std::env::temp_dir().join("rltoml_dbs_byte_exact");
+    let prefix_name = prefix.to_str().unwrap();
+    let (ok, _, stderr) = run(&fixture("dangopedia.dbs"), &["-o", prefix_name]);
+    assert!(ok, "{stderr}");
+
+    let bin = prefix.with_extension("dbs.bin");
+    assert_eq!(
+        std::fs::read(&bin).unwrap(),
+        std::fs::read(fixture("dangopedia.dbs.bin")).unwrap()
+    );
+}
+
+#[test]
 fn dbs_toml_round_trip() {
     let prefix = std::env::temp_dir().join("rltoml_dbs_round_trip");
     let prefix_name = prefix.to_str().unwrap();

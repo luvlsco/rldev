@@ -271,24 +271,3 @@ fn key_for(p: usize) -> u32 {
     let idx = ((p / 16) * 5 + (p % 16 % 5)) % 25;
     if (KEY_PATTERN >> idx) & 1 != 0 { KEY_A } else { KEY_B }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{apply_xor_layer, compress_dbs, decompress_dbs, encrypt_dbs};
-
-    #[test]
-    fn compression_round_trip() {
-        let data = b"ABCDABCDABCDABCD database data ".repeat(16);
-        let mut encrypted = data.clone();
-        encrypt_dbs(&mut encrypted);
-        let mut archive = compress_dbs(&encrypted).unwrap();
-        assert_eq!(&archive[0..4], &[0, 0, 0, 0]);
-
-        apply_xor_layer(&mut archive);
-        apply_xor_layer(&mut archive);
-        let mut decoded = decompress_dbs(&archive).unwrap();
-        encrypt_dbs(&mut decoded);
-
-        assert_eq!(decoded, data);
-    }
-}

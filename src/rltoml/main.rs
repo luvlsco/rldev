@@ -40,7 +40,7 @@ fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
     } else if file_name.ends_with(".dbs") {
         Some(path.with_extension("").with_extension("dbs.bin"))
     } else if file_name.ends_with(".dbs.bin") {
-        Some(path.with_extension("dbs.bin.toml"))
+        Some(path.with_extension("bin.toml"))
     } else if file_name.ends_with(".dbs.bin.toml") {
         Some(path.with_extension("").with_extension(""))
 
