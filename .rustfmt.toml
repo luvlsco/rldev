@@ -1,0 +1,8 @@
+max_width = 130
+
+reorder_imports = true
+reorder_modules = true
+merge_derives = true
+
+edition = "2024"
+newline_style = "Unix"
