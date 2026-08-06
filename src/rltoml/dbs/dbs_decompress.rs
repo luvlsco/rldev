@@ -188,46 +188,37 @@ pub fn dbs_to_bin(input_path: &str, output_path: &str, verbose: bool) -> Result<
     Ok(())
 }
 
-#[derive(Clone, Copy)]
-enum LzToken {
-    Literal(u8),
-    BackReference { offset: usize, length: usize },
-}
-
 /// Compresses decrypted internal DBS data into the three-word archive header
 /// plus the flag-driven LZSS stream used by RealLive.
 fn compress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
-    let mut tokens = Vec::new();
+    let mut stream = Vec::new();
+    let mut chunk = Vec::with_capacity(9);
+    let mut flags = 0u8;
+    let mut count = 0u8;
     let mut pos = 0usize;
     while pos < data.len() {
         let (offset, length) = find_match(data, pos);
         if length >= 2 {
-            tokens.push(LzToken::BackReference { offset, length });
+            chunk.push((((offset & 0xF) << 4) | (length - 2)) as u8);
+            chunk.push((offset >> 4) as u8);
             pos += length;
         } else {
-            tokens.push(LzToken::Literal(data[pos]));
+            flags |= 1 << count;
+            chunk.push(data[pos]);
             pos += 1;
         }
+        count += 1;
+        if count == 8 {
+            chunk.insert(0, flags);
+            stream.extend_from_slice(&chunk);
+            chunk.clear();
+            flags = 0;
+            count = 0;
+        }
     }
-
-    let mut stream = Vec::new();
-    for chunk in tokens.chunks(8) {
-        let mut flags = 0u8;
-        for (bit, token) in chunk.iter().enumerate() {
-            if matches!(token, LzToken::Literal(_)) {
-                flags |= 1 << bit;
-            }
-        }
-        stream.push(flags);
-        for token in chunk {
-            match token {
-                LzToken::Literal(value) => stream.push(*value),
-                LzToken::BackReference { offset, length } => {
-                    stream.push((((offset & 0xF) << 4) | (length - 2)) as u8);
-                    stream.push((offset >> 4) as u8);
-                }
-            }
-        }
+    if count > 0 {
+        chunk.insert(0, flags);
+        stream.extend_from_slice(&chunk);
     }
 
     let compressed_length = u32::try_from(
