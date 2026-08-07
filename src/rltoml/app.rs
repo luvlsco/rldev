@@ -70,21 +70,6 @@ pub struct Args {
     pub uppercase: bool,
 
     #[arg(
-        long = "to-csv",
-        help = "extract DBS data to CSV (from a wrapped .dbs or a decrypted .dbs.bin)",
-        help_heading = "Options"
-    )]
-    pub to_csv: bool,
-
-    #[arg(
-        long = "to-bin",
-        help = "decompress a wrapped .dbs to the raw decrypted .dbs.bin",
-        conflicts_with = "to_csv",
-        help_heading = "Options"
-    )]
-    pub to_bin: bool,
-
-    #[arg(
 		short = 'o',
 		long = "output",
 		value_name = "NAME",
@@ -95,6 +80,21 @@ pub struct Args {
 		help_heading = "Options",
 	)]
     pub output: Option<String>,
+
+    #[arg(
+        long = "to-csv",
+        help = "extract DBS data to CSV (from an obfuscated .dbs or a decrypted .dbs.bin)",
+        help_heading = "Conversion options"
+    )]
+    pub to_csv: bool,
+
+    #[arg(
+        long = "to-bin",
+        help = "decompress an obfuscated .dbs to the raw decrypted .dbs.bin",
+        conflicts_with = "to_csv",
+        help_heading = "Conversion options"
+    )]
+    pub to_bin: bool,
 
     #[arg(value_name = "FILE/FILES", help = "input file(s) to convert")]
     pub files: Vec<String>,
@@ -135,6 +135,10 @@ impl Args {
 
 			\x1b[1;4mSupported formats:\x1b[0m
 			      \x1b[1m.gan\x1b[0m: bidirectional conversion with \x1b[1m.gan.toml\x1b[0m
+
+			      \x1b[1m.dbs\x1b[0m:          convert to \x1b[1m.dbs.bin.toml\x1b[0m (default) | \x1b[1m.dbs.bin\x1b[0m (\x1b[1m--to-bin\x1b[0m) | \x1b[1m.dbs.csv\x1b[0m (\x1b[1m--to-csv\x1b[0m)
+			      \x1b[1m.dbs.bin\x1b[0m:      convert to \x1b[1m.dbs.bin.toml\x1b[0m (default) | \x1b[1m.dbs.csv\x1b[0m (\x1b[1m--to-csv\x1b[0m)
+			      \x1b[1m.dbs.bin.toml\x1b[0m: convert back to \x1b[1m.dbs\x1b[0m
 		", rldev_version = env!("CARGO_PKG_VERSION")}
     }
 }

@@ -56,6 +56,20 @@ fn toml_to_gan() {
     assert_eq!(actual, expected, "GAN output differs from fixture");
 }
 
+#[test]
+fn toml_to_gan_default_output_name() {
+    let dir = std::env::temp_dir().join("rltoml_gan_default_out");
+    std::fs::create_dir_all(&dir).unwrap();
+    let input = dir.join("success.gan.toml");
+    std::fs::copy(fixture("success.gan.toml"), &input).unwrap();
+
+    let (ok, stdout, stderr) = run(&input, &[]);
+    assert!(ok, "{stderr}");
+    assert!(stdout.contains("Successfully converted: success.gan"));
+    assert!(dir.join("success.gan").exists());
+    assert!(!dir.join("success.gan.gan").exists());
+}
+
 // --- GAN error output ---
 
 #[test]

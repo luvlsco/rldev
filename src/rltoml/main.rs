@@ -34,7 +34,7 @@ fn get_file_type(path: &std::path::Path) -> Option<std::path::PathBuf> {
     if file_name.ends_with(".gan") {
         Some(path.with_extension("").with_extension("gan.toml"))
     } else if file_name.ends_with(".gan.toml") {
-        Some(path.with_extension("gan"))
+        Some(path.with_extension(""))
 
     // .dbs file
     } else if file_name.ends_with(".dbs") {

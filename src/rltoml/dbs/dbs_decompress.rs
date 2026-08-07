@@ -67,7 +67,7 @@ pub fn encrypt_dbs(data: &mut [u8]) {
     }
 }
 
-/// Decompresses and decrypts a wrapped `.dbs` archive into the raw database bytes.
+/// Decompresses and decrypts an obfuscated `.dbs` archive into the raw database bytes.
 pub fn dbs_to_bin_bytes(input_path: &str, verbose: bool) -> Result<Vec<u8>, DbsError> {
     if verbose {
         eprintln!("Reading DBS file");

@@ -51,7 +51,7 @@ struct TomlRow {
     cells: Vec<TomlCell>,
 }
 
-/// Converts TOML directly into the wrapped `.dbs` archive.
+/// Converts TOML directly into the obfuscated `.dbs` archive.
 pub fn toml_to_dbs(input_path: &str, output_path: &str, verbose: bool) -> Result<(), DbsWriteError> {
     let content = std::fs::read_to_string(input_path)?;
     let doc = content.parse()?;

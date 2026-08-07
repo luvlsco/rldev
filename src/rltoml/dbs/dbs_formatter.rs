@@ -90,7 +90,7 @@ pub fn dbs_bin_to_csv(path: &str, title: &str, verbose: bool) -> Result<Vec<u8>,
     dbs_bytes_to_csv(&data, title, verbose)
 }
 
-/// Converts a wrapped `.dbs` archive into CSV in one step: decompress,
+/// Converts an obfuscated `.dbs` archive into CSV in one step: decompress,
 /// decrypt, then extract.
 pub fn dbs_to_csv(path: &str, title: &str, verbose: bool) -> Result<Vec<u8>, String> {
     let data = super::dbs_decompress::dbs_to_bin_bytes(path, verbose).map_err(|e| e.to_string())?;
