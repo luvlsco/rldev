@@ -8,6 +8,20 @@
                                    CHANGELOG
 -------------------------------------------------------------------------------
 
+-- 1.1.0 - 2026-08-07 --
+
+ADDENDUM:
+
+  Added full support for RealLive DBS format:
+    .dbs <-> .dbs.bin.toml (default)
+    .dbs -> .dbs.bin (--to-bin)
+    .dbs -> .dbs.csv (--to-csv)
+
+RLTOML:
+
+  Added "--to-bin" option to decompress ".dbs" to the raw ".dbs.bin."
+  Added "--to-csv" option to extract DBS data to CSV in the CSV2DBS layout.
+
 -- 1.0.0 - 2026-07-07 --
 
 ADDENDUM:
