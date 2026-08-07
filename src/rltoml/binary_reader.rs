@@ -49,7 +49,7 @@ impl TrackingReader {
 
     /// Returns the file offset of the last successful read.
     pub fn last_read_offset(&self) -> Option<usize> {
-        self.last_offset.borrow().clone()
+        *self.last_offset.borrow()
     }
 
     /// Returns the bytes from the last successful read.

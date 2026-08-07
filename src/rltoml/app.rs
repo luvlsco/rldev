@@ -36,7 +36,6 @@ use clap::{CommandFactory, Parser};
 	disable_help_flag = true,
 	disable_version_flag = true,
 )]
-
 pub struct Args {
     // RlToml Information
     #[arg(long = "version", help = "display RlToml version information", help_heading = "Information")]

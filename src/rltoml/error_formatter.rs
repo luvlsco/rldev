@@ -196,10 +196,7 @@ fn format_kaitai_error(err: &kaitai::KError) -> String {
     use kaitai::KError;
     let message = match err {
         KError::IoError { .. } => "cannot read file: input/output error".to_string(),
-        KError::Eof { requested, available } => format!(
-            "file is truncated (expected {} bytes, found {})",
-            requested, available
-        ),
+        KError::Eof { requested, available } => format!("file is truncated (expected {} bytes, found {})", requested, available),
         KError::NoTerminatorFound => "expected string terminator not found".to_string(),
         KError::EmptyIterator => "expected data but found none".to_string(),
         KError::UnknownEncoding { name } => format!("unknown encoding: {}", name),
