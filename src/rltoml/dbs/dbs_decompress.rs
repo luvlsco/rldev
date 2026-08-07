@@ -58,6 +58,63 @@ pub fn apply_xor_layer(data: &mut [u8]) {
     }
 }
 
+/// Post-decompress decrypt layer. XORs each u32 with KEY_A or KEY_B,
+/// chosen by a packed 25-bit `KEY_PATTERN` cycled in 5-entry windows
+/// advancing every 16 u32s (period 80). Self-inverse.
+pub fn encrypt_dbs(data: &mut [u8]) {
+    for (j, byte) in data.iter_mut().enumerate() {
+        *byte ^= key_for((j / 4) % 80).to_le_bytes()[j % 4];
+    }
+}
+
+/// Decompresses and decrypts a wrapped `.dbs` archive into the raw database bytes.
+pub fn dbs_to_bin_bytes(input_path: &str, verbose: bool) -> Result<Vec<u8>, DbsError> {
+    if verbose {
+        eprintln!("Reading DBS file");
+    }
+    let mut data = std::fs::read(input_path)?;
+
+    if verbose {
+        eprintln!("Removing XOR layer");
+    }
+    apply_xor_layer(&mut data);
+
+    if verbose {
+        eprintln!("Decompressing");
+    }
+    let decompressed = decompress_dbs(&data)?;
+    let mut data = decompressed;
+
+    if verbose {
+        eprintln!("Decrypting");
+    }
+    encrypt_dbs(&mut data);
+
+    Ok(data)
+}
+
+/// Writes decrypted internal DBS data as an obfuscated `.dbs` archive.
+pub fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) -> Result<(), DbsError> {
+    if verbose {
+        println!("Encrypting DBS data");
+    }
+    let mut encrypted = data.to_vec();
+    encrypt_dbs(&mut encrypted);
+
+    if verbose {
+        println!("Compressing DBS data");
+    }
+    let mut output = compress_dbs(&encrypted)?;
+    apply_xor_layer(&mut output);
+
+    if verbose {
+        println!("Writing DBS file");
+    }
+    std::fs::write(output_path, output)?;
+
+    Ok(())
+}
+
 /// LZSS decompressor. Header is 12 bytes; bytes 8-11 hold the
 /// decompressed size (`dlen`). When `dlen` is zero the payload
 /// is stored uncompressed.
@@ -126,47 +183,6 @@ fn decompress_dbs(data: &[u8]) -> Result<Vec<u8>, DbsError> {
     }
 
     Ok(out)
-}
-
-/// Post-decompress decrypt layer. XORs each u32 with KEY_A or KEY_B,
-/// chosen by a packed 25-bit `KEY_PATTERN` cycled in 5-entry windows
-/// advancing every 16 u32s (period 80). Self-inverse.
-pub fn encrypt_dbs(data: &mut [u8]) {
-    for (j, byte) in data.iter_mut().enumerate() {
-        *byte ^= key_for((j / 4) % 80).to_le_bytes()[j % 4];
-    }
-}
-
-/// Full DBS-to-BIN pipeline: Remove XOR layer -> LZSS decompress -> decrypt.
-/// Writes the resulting plaintext database to `output_path`.
-pub fn dbs_to_bin(input_path: &str, output_path: &str, verbose: bool) -> Result<(), DbsError> {
-    if verbose {
-        eprintln!("Reading DBS file");
-    }
-    let mut data = std::fs::read(input_path)?;
-
-    if verbose {
-        eprintln!("Removing XOR layer");
-    }
-    apply_xor_layer(&mut data);
-
-    if verbose {
-        eprintln!("Decompressing");
-    }
-    let decompressed = decompress_dbs(&data)?;
-    let mut data = decompressed;
-
-    if verbose {
-        eprintln!("Decrypting");
-    }
-    encrypt_dbs(&mut data);
-
-    if verbose {
-        eprintln!("Writing raw database binary");
-    }
-    std::fs::write(output_path, &data)?;
-
-    Ok(())
 }
 
 /// Compresses decrypted internal DBS data into the three-word archive header
@@ -240,28 +256,6 @@ fn find_match(data: &[u8], pos: usize) -> (usize, usize) {
         }
     }
     best
-}
-
-/// Writes decrypted internal DBS data as an obfuscated `.dbs` archive.
-pub fn write_bin_as_dbs(data: &[u8], output_path: &str, verbose: bool) -> Result<(), DbsError> {
-    if verbose {
-        println!("Encrypting DBS data");
-    }
-    let mut encrypted = data.to_vec();
-    encrypt_dbs(&mut encrypted);
-
-    if verbose {
-        println!("Compressing DBS data");
-    }
-    let mut output = compress_dbs(&encrypted)?;
-    apply_xor_layer(&mut output);
-
-    if verbose {
-        println!("Writing DBS file");
-    }
-    std::fs::write(output_path, output)?;
-
-    Ok(())
 }
 
 fn key_for(p: usize) -> u32 {

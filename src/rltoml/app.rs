@@ -70,6 +70,21 @@ pub struct Args {
     pub uppercase: bool,
 
     #[arg(
+        long = "to-csv",
+        help = "extract DBS data to CSV (from a wrapped .dbs or a decrypted .dbs.bin)",
+        help_heading = "Options"
+    )]
+    pub to_csv: bool,
+
+    #[arg(
+        long = "to-bin",
+        help = "decompress a wrapped .dbs to the raw decrypted .dbs.bin",
+        conflicts_with = "to_csv",
+        help_heading = "Options"
+    )]
+    pub to_bin: bool,
+
+    #[arg(
 		short = 'o',
 		long = "output",
 		value_name = "NAME",

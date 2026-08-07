@@ -57,7 +57,26 @@ fn derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
     })
 }
 
-fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, uppercase: bool) {
+/// Default output for a `.dbs` input in chain mode: the final `.dbs.bin.toml`.
+fn chain_derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
+    let file_name = input.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    if file_name.ends_with(".dbs") {
+        input.with_extension("dbs.bin.toml")
+    } else {
+        derive_output_path(input)
+    }
+}
+
+fn csv_derive_output_path(input: &std::path::Path) -> std::path::PathBuf {
+    input.with_extension("csv")
+}
+
+/// CSV title row: the input's base name truncated at the first dot.
+fn csv_title(file_name: &str) -> String {
+    file_name.split('.').next().unwrap_or(file_name).to_string()
+}
+
+fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, uppercase: bool, to_csv: bool, to_bin: bool) {
     let path = std::path::Path::new(file);
     let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
@@ -80,6 +99,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
             );
             rldev::common::cli::exit(1);
         }
+        println!("Successfully converted: {}", get_file_name(out_path));
 
     // .gan.toml
     } else if file_name.ends_with(".gan.toml") {
@@ -92,6 +112,7 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
             );
             rldev::common::cli::exit(1);
         });
+        println!("Successfully converted: {}", get_file_name(out_path));
 
     // .dbs.bin.toml
     } else if file_name.ends_with(".dbs.bin.toml") {
@@ -104,10 +125,104 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
             );
             rldev::common::cli::exit(1);
         });
+        println!("Successfully converted: {}", get_file_name(out_path));
 
     // .dbs.bin
     } else if file_name.ends_with(".dbs.bin") {
-        let toml = dbs::dbs_bin_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
+        if to_csv {
+            let csv = dbs::dbs_bin_to_csv(file, &csv_title(file_name), verbose).unwrap_or_else(|err| {
+                eprintln!(
+                    "Failed to convert \"{}\" to \"{}\" (BIN -> CSV): {}",
+                    get_file_name(file),
+                    get_file_name(out_path),
+                    err
+                );
+                rldev::common::cli::exit(1);
+            });
+            if let Err(err) = std::fs::write(out_path, csv) {
+                eprintln!(
+                    "Error writing {}: {}",
+                    get_file_name(out_path),
+                    error_formatter::format_io_error(&err)
+                );
+                rldev::common::cli::exit(1);
+            }
+        } else {
+            let toml = dbs::dbs_bin_to_toml(file, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
+                eprintln!(
+                    "Failed to convert \"{}\" to \"{}\" (BIN -> TOML): {}",
+                    get_file_name(file),
+                    get_file_name(out_path),
+                    error_formatter::format_parse_error(&err)
+                );
+                rldev::common::cli::exit(1);
+            });
+            if let Err(err) = std::fs::write(out_path, toml) {
+                eprintln!(
+                    "Error writing {}: {}",
+                    get_file_name(out_path),
+                    error_formatter::format_io_error(&err)
+                );
+                rldev::common::cli::exit(1);
+            }
+        }
+        println!("Successfully converted: {}", get_file_name(out_path));
+
+    // .dbs
+    } else if file_name.ends_with(".dbs") {
+        if to_csv {
+            let csv = dbs::dbs_to_csv(file, &csv_title(file_name), verbose).unwrap_or_else(|err| {
+                eprintln!(
+                    "Failed to convert \"{}\" to \"{}\" (DBS -> CSV): {}",
+                    get_file_name(file),
+                    get_file_name(out_path),
+                    err
+                );
+                rldev::common::cli::exit(1);
+            });
+            if let Err(err) = std::fs::write(out_path, csv) {
+                eprintln!(
+                    "Error writing {}: {}",
+                    get_file_name(out_path),
+                    error_formatter::format_io_error(&err)
+                );
+                rldev::common::cli::exit(1);
+            }
+            println!("Successfully converted: {}", get_file_name(out_path));
+            return;
+        }
+
+        let bytes = dbs::dbs_to_bin_bytes(file, verbose).unwrap_or_else(|err| {
+            let message = match &err {
+                dbs::dbs_decompress::DbsError::Io(err) => error_formatter::format_io_error(err),
+                _ => err.to_string(),
+            };
+            eprintln!(
+                "Failed to convert \"{}\" to \"{}\" (DBS -> BIN): {}",
+                get_file_name(file),
+                get_file_name(out_path),
+                error_formatter::format_write_error(&message, verbose)
+            );
+            rldev::common::cli::exit(1);
+        });
+
+        if to_bin {
+            if verbose {
+                eprintln!("Writing raw database binary");
+            }
+            if let Err(err) = std::fs::write(out_path, &bytes) {
+                eprintln!(
+                    "Error writing {}: {}",
+                    get_file_name(out_path),
+                    error_formatter::format_io_error(&err)
+                );
+                rldev::common::cli::exit(1);
+            }
+            println!("Successfully converted: {}", get_file_name(out_path));
+            return;
+        }
+
+        let toml = dbs::dbs_bytes_to_toml(&bytes, verbose).unwrap_or_else(|err: error_formatter::ParseError| {
             eprintln!(
                 "Failed to convert \"{}\" to \"{}\" (BIN -> TOML): {}",
                 get_file_name(file),
@@ -124,24 +239,8 @@ fn convert_single(file: &str, out_path: &std::path::Path, verbose: bool, upperca
             );
             rldev::common::cli::exit(1);
         }
-
-    // .dbs
-    } else if file_name.ends_with(".dbs") {
-        dbs::dbs_to_bin(file, &out_path.display().to_string(), verbose).unwrap_or_else(|err| {
-            let message = match &err {
-                dbs::dbs_decompress::DbsError::Io(err) => error_formatter::format_io_error(err),
-                _ => err.to_string(),
-            };
-            eprintln!(
-                "Failed to convert \"{}\" to \"{}\" (DBS -> BIN): {}",
-                get_file_name(file),
-                get_file_name(out_path),
-                error_formatter::format_write_error(&message, verbose)
-            );
-            rldev::common::cli::exit(1);
-        });
+        println!("Successfully converted: {}", get_file_name(out_path));
     }
-    println!("Successfully converted: {}", get_file_name(out_path));
 }
 
 fn main() {
@@ -169,6 +268,8 @@ fn main() {
 
     let verbose = args.verbose;
     let uppercase = args.uppercase;
+    let to_csv = args.to_csv;
+    let to_bin = args.to_bin;
 
     let inputs: Vec<std::path::PathBuf> = args.files.iter().map(std::path::PathBuf::from).collect();
 
@@ -178,10 +279,43 @@ fn main() {
             eprintln!("Unknown file type: {}", path.display());
             rldev::common::cli::exit(1);
         }
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+        if to_csv && !name.ends_with(".dbs") && !name.ends_with(".dbs.bin") {
+            eprintln!("--to-csv requires .dbs or .dbs.bin input files");
+            rldev::common::cli::exit(1);
+        }
+        if to_bin && !name.ends_with(".dbs") {
+            eprintln!("--to-bin requires a .dbs input file");
+            rldev::common::cli::exit(1);
+        }
     }
 
     // Append target extension to single-file conversion
-    let output: Option<String> = if inputs.len() == 1 {
+    let output: Option<String> = if to_csv {
+        if inputs.len() == 1 {
+            args.output.map(|output_name| {
+                if output_name.ends_with(".csv") {
+                    output_name
+                } else {
+                    format!("{}.csv", output_name)
+                }
+            })
+        } else {
+            args.output
+        }
+    } else if to_bin {
+        if inputs.len() == 1 {
+            args.output.map(|output_name| {
+                if output_name.ends_with(".dbs.bin") {
+                    output_name
+                } else {
+                    format!("{}.dbs.bin", output_name)
+                }
+            })
+        } else {
+            args.output
+        }
+    } else if inputs.len() == 1 {
         args.output.map(|output_name| {
             let converted_output_suffix = inputs[0].file_name().and_then(|n| n.to_str()).and_then(|file_name| {
                 if file_name.ends_with(".gan.toml") {
@@ -190,10 +324,8 @@ fn main() {
                     Some(".gan.toml")
                 } else if file_name.ends_with(".dbs.bin.toml") {
                     Some(".dbs")
-                } else if file_name.ends_with(".dbs.bin") {
+                } else if file_name.ends_with(".dbs.bin") || file_name.ends_with(".dbs") {
                     Some(".dbs.bin.toml")
-                } else if file_name.ends_with(".dbs") {
-                    Some(".dbs.bin")
                 } else {
                     None
                 }
@@ -211,12 +343,18 @@ fn main() {
         output,
         outdir: None,
         inputs: &inputs,
-        derive: derive_output_path,
+        derive: if to_csv {
+            csv_derive_output_path
+        } else if to_bin {
+            derive_output_path
+        } else {
+            chain_derive_output_path
+        },
     })
     .unwrap();
 
     for (file, out_path) in args.files.iter().zip(out_paths.iter()) {
-        convert_single(file, out_path, verbose, uppercase);
+        convert_single(file, out_path, verbose, uppercase, to_csv, to_bin);
     }
     rldev::common::cli::exit(0);
 }

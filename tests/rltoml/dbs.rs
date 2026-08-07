@@ -63,7 +63,7 @@ fn dbs_archive_header_first_word_zero() {
 fn dbs_bin_round_trip_byte_exact() {
     let prefix = std::env::temp_dir().join("rltoml_dbs_byte_exact");
     let prefix_name = prefix.to_str().unwrap();
-    let (ok, _, stderr) = run(&fixture("dangopedia.dbs"), &["-o", prefix_name]);
+    let (ok, _, stderr) = run(&fixture("dangopedia.dbs"), &["--to-bin", "-o", prefix_name]);
     assert!(ok, "{stderr}");
 
     let bin = prefix.with_extension("dbs.bin");
@@ -74,11 +74,76 @@ fn dbs_bin_round_trip_byte_exact() {
 }
 
 #[test]
+fn dbs_default_writes_toml_only() {
+    let prefix = std::env::temp_dir().join("rltoml_dbs_toml_only");
+    let prefix_name = prefix.to_str().unwrap();
+    let (ok, stdout, stderr) = run(&fixture("dangopedia.dbs"), &["-o", prefix_name]);
+    assert!(ok, "{stderr}");
+
+    let toml = prefix.with_extension("dbs.bin.toml");
+    assert!(toml.exists());
+    assert!(!prefix.with_extension("dbs.bin").exists());
+    assert!(std::fs::read_to_string(toml).unwrap().contains("row_column_0 = \"Anpan\""));
+    assert_eq!(stdout.lines().filter(|l| l.contains("Successfully converted")).count(), 1);
+}
+
+#[test]
+fn to_bin_writes_bin_only() {
+    let prefix = std::env::temp_dir().join("rltoml_dbs_to_bin");
+    let prefix_name = prefix.to_str().unwrap();
+    let (ok, stdout, stderr) = run(&fixture("dangopedia.dbs"), &["--to-bin", "-o", prefix_name]);
+    assert!(ok, "{stderr}");
+
+    assert!(prefix.with_extension("dbs.bin").exists());
+    assert!(!prefix.with_extension("dbs.bin.toml").exists());
+    assert_eq!(stdout.lines().filter(|l| l.contains("Successfully converted")).count(), 1);
+}
+
+fn assert_dangopedia_csv(bytes: &[u8]) {
+    let text = String::from_utf8_lossy(bytes);
+    assert!(text.starts_with("dangopedia,,,,\r\n\r\n#DATANO,0,1,2,3\r\n#DATATYPE,S,S,V,V\r\n\r\n"));
+    assert!(text.contains("\r\n0,\"Anpan\","));
+    assert!(text.contains(",4502,87\r\n"));
+    assert!(text.contains("\"Anpan is a sweet roll"));
+    assert!(text.contains("\r\n95,\"EOL\",\"\",0,0"));
+    assert!(bytes.windows(2).any(|w| w == [0x81, 0x68]));
+}
+
+#[test]
+fn bin_to_csv() {
+    let output = std::env::temp_dir().join("rltoml_bin_to_csv.csv");
+    let (ok, _, stderr) = run(&fixture("dangopedia.dbs.bin"), &["--to-csv", "-o", output.to_str().unwrap()]);
+    assert!(ok, "{stderr}");
+    assert_dangopedia_csv(&std::fs::read(output).unwrap());
+}
+
+#[test]
+fn to_csv_appends_extension_to_output_name() {
+    let prefix = std::env::temp_dir().join("rltoml_csv_prefix");
+    let (ok, _, stderr) = run(&fixture("dangopedia.dbs"), &["--to-csv", "-o", prefix.to_str().unwrap()]);
+    assert!(ok, "{stderr}");
+    assert_dangopedia_csv(&std::fs::read(prefix.with_extension("csv")).unwrap());
+}
+
+#[test]
+fn dbs_to_csv_chain_matches_bin_to_csv() {
+    let output = std::env::temp_dir().join("rltoml_csv_compare.csv");
+    let (ok, _, stderr) = run(&fixture("dangopedia.dbs.bin"), &["--to-csv", "-o", output.to_str().unwrap()]);
+    assert!(ok, "{stderr}");
+    let direct = std::fs::read(&output).unwrap();
+
+    let (ok, _, stderr) = run(&fixture("dangopedia.dbs"), &["--to-csv", "-o", output.to_str().unwrap()]);
+    assert!(ok, "{stderr}");
+
+    assert_eq!(direct, std::fs::read(output).unwrap());
+}
+
+#[test]
 fn dbs_toml_round_trip() {
     let prefix = std::env::temp_dir().join("rltoml_dbs_round_trip");
     let prefix_name = prefix.to_str().unwrap();
 
-    let (ok, _, stderr) = run(&fixture("dangopedia.dbs"), &["-o", prefix_name]);
+    let (ok, _, stderr) = run(&fixture("dangopedia.dbs"), &["--to-bin", "-o", prefix_name]);
     assert!(ok, "{stderr}");
     let bin = prefix.with_extension("dbs.bin");
 
